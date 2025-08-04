@@ -12,6 +12,9 @@ import java.sql.SQLException;
  */
 public class CredentialManager {
 
+    /** Hard-coded administrator password used for privileged actions. */
+    private static final String ADMIN_PASSWORD = "admin";
+
     /** Creates a new {@code CredentialManager}. */
     public CredentialManager() {}
 
@@ -21,6 +24,8 @@ public class CredentialManager {
      * @return the username if credentials are correct; otherwise {@code null}
      */
     public String validateLogin(String username, String password) {
+        username = username.trim().toLowerCase();
+        password = password.trim();
         String sql = "SELECT username FROM tblUsers WHERE username=? AND passwordHash=?";
         try (Connection c = DBManager.get();
              PreparedStatement ps = c.prepareStatement(sql)) {
@@ -39,6 +44,7 @@ public class CredentialManager {
 
     /** Checks whether a username already exists in the database. */
     public boolean isUsernameExists(String username) {
+        username = username.trim().toLowerCase();
         String sql = "SELECT 1 FROM tblUsers WHERE username=?";
         try (Connection c = DBManager.get();
              PreparedStatement ps = c.prepareStatement(sql)) {
@@ -57,6 +63,8 @@ public class CredentialManager {
      * for future use and is not persisted.
      */
     public boolean addUser(String name, String username, String password) {
+        username = username.trim().toLowerCase();
+        password = password.trim();
         if (isUsernameExists(username)) {
             return false;
         }
@@ -74,6 +82,8 @@ public class CredentialManager {
 
     /** Resets the password for the given username. */
     public boolean resetPassword(String username, String newPassword) {
+        username = username.trim().toLowerCase();
+        newPassword = newPassword.trim();
         String sql = "UPDATE tblUsers SET passwordHash=? WHERE username=?";
         try (Connection c = DBManager.get();
              PreparedStatement ps = c.prepareStatement(sql)) {
@@ -84,5 +94,10 @@ public class CredentialManager {
             e.printStackTrace();
         }
         return false;
+    }
+
+    /** Verifies the administrator password. */
+    public boolean isAdminPassword(String adminPassword) {
+        return ADMIN_PASSWORD.equals(adminPassword.trim());
     }
 }

@@ -240,9 +240,7 @@ public class SignupPage extends javax.swing.JFrame {
             return;
         }
 
-        String correctAdminPassword = "admin";
-
-        if (!adminPassword.equals(correctAdminPassword)) {
+        if (!credentialManager.isAdminPassword(adminPassword)) {
             jLabelErrorText.setText("Incorrect administrator password.");
             return;
         }

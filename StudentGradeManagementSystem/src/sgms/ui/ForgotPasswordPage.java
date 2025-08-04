@@ -221,9 +221,7 @@ public class ForgotPasswordPage extends javax.swing.JFrame {
             return;
         }
 
-        String correctAdminPassword = "admin";
-
-        if (!adminPassword.equals(correctAdminPassword)) {
+         if (!credentialManager.isAdminPassword(adminPassword)) {
             jLabelLoginError.setText("Incorrect administrator password.");
             return;
         }

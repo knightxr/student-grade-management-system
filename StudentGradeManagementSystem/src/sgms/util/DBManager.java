@@ -5,7 +5,7 @@ import java.sql.*;
 
 public final class DBManager {
 
-    private static final Path DB_PATH = Paths.get("data", "School.accdb");
+    private static final Path DB_PATH = Paths.get("src","sgms", "data", "School.accdb");
     private static final String URL =
         "jdbc:ucanaccess://" + DB_PATH.toAbsolutePath()
         + ";newDatabaseVersion=V2010";   // Auto-create file if absent

@@ -61,7 +61,6 @@ public class MainPage extends javax.swing.JFrame {
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setBackground(javax.swing.UIManager.getDefaults().getColor("Button.default.foreground"));
 
-        jPanel1.setBackground(null);
         jPanel1.setForeground(new java.awt.Color(255, 255, 255));
 
         jPanel2.setBackground(new java.awt.Color(0, 153, 255));
@@ -214,7 +213,6 @@ public class MainPage extends javax.swing.JFrame {
         jPanel6.setForeground(new java.awt.Color(255, 255, 255));
         jPanel6.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
 
-        jLabelMadeByJacquesSmit.setBackground(null);
         jLabelMadeByJacquesSmit.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jLabelMadeByJacquesSmit.setForeground(new java.awt.Color(255, 255, 255));
         jLabelMadeByJacquesSmit.setText("Made by Jacques Smit");
@@ -225,6 +223,8 @@ public class MainPage extends javax.swing.JFrame {
         jButtonHelp.setForeground(new java.awt.Color(255, 255, 255));
         jButtonHelp.setText("Need help? Click here");
         jButtonHelp.setToolTipText("");
+        jButtonHelp.setBorder(null);
+        jButtonHelp.setBorderPainted(false);
         jButtonHelp.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 jButtonHelpActionPerformed(evt);

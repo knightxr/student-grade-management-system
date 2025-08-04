@@ -1,5 +1,5 @@
 package sgms.ui;
-
+import sgms.util.CredentialManager;
 
 /**
  * @author Jacques Smit
@@ -8,8 +8,12 @@ package sgms.ui;
  * It allows users to log in, sign up, or reset their password.
  */
 public class LoginPage extends javax.swing.JFrame {
+    private final CredentialManager credentialManager;
 
-    
+    public LoginPage() {
+        initComponents();
+        credentialManager = new CredentialManager();
+    }
 
     /**
      * This method is called from within the constructor to initialize the form.
@@ -216,7 +220,7 @@ public class LoginPage extends javax.swing.JFrame {
 
         String userFullName = credentialManager.validateLogin(username, password);
         if (userFullName != null) {
-            MainPage mainPage = new MainPage(userFullName);
+            MainPage mainPage = new MainPage();
             mainPage.setVisible(true);
             dispose();
         } else {

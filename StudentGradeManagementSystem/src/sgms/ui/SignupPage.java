@@ -1,5 +1,8 @@
 package sgms.ui;
 
+import javax.swing.JOptionPane;
+import sgms.util.CredentialManager;
+
 /**
  * @author Jacques Smit
  *
@@ -7,8 +10,13 @@ package sgms.ui;
  * administrator password for authorization.
  */
 public class SignupPage extends javax.swing.JFrame {
+    private final CredentialManager credentialManager;
 
+    public SignupPage() {
+        initComponents();
+        credentialManager = new CredentialManager();
     }
+    
 
     /**
      * This method is called from within the constructor to initialize the form.

@@ -1,7 +1,7 @@
 package sgms.ui;
 
 import javax.swing.JOptionPane;
-import lillyhouselibrary.CredentialManager;
+import sgms.util.CredentialManager;
 
 /**
  * @author Jacques Smit
@@ -18,7 +18,7 @@ public class ForgotPasswordPage extends javax.swing.JFrame {
      */
     public ForgotPasswordPage() {
         initComponents();
-        credentialManager = new CredentialManager("credentials.txt");
+        credentialManager = new CredentialManager();
     }
 
     /**

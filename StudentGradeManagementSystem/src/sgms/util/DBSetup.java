@@ -5,25 +5,33 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 /**
- * One-off schema bootstrapper.
- * Run this class ONCE to create the empty tables inside School.accdb.
- * Afterwards do NOT run again or you will get “table already exists” errors.
+ * One-off schema bootstrapper. Run this class ONCE to create the empty tables
+ * inside School.accdb. Afterwards do NOT run again or you will get “table
+ * already exists” errors.
  */
 public class DBSetup {
 
     public static void main(String[] args) {
-        try (Connection c = DBManager.get();
-             Statement  s = c.createStatement()) {
+        try (Connection c = DBManager.get(); Statement s = c.createStatement()) {
 
             // 1 ───────── USERS ────────────────────────────────────────────────
             s.executeUpdate("""
                 CREATE TABLE tblUsers (
                     userId        AUTOINCREMENT PRIMARY KEY,
+                    fullName      TEXT(50),
                     username      TEXT(30)  UNIQUE NOT NULL,
                     passwordHash  TEXT(80)  NOT NULL,
-                    role          TEXT(10)  DEFAULT 'Teacher'
+                    role          TEXT(20)  DEFAULT 'Teacher'
                 )
             """);
+            
+            s.executeUpdate("""
+                INSERT INTO tblUsers (fullName, username, passwordHash, role)
+                VALUES ('Administrator', 'admin',
+                        '6cd31521af231',
+                        'Administrator')
+            """);
+
 
             // 2 ───────── STUDENTS ────────────────────────────────────────────
             s.executeUpdate("""
@@ -101,5 +109,6 @@ public class DBSetup {
         }
     }
 
-    private DBSetup() {}
+    private DBSetup() {
+    }
 }

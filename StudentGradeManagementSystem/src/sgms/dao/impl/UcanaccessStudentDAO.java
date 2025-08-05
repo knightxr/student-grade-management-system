@@ -3,7 +3,7 @@ package sgms.dao.impl;
 import sgms.dao.StudentDAO;
 import sgms.model.Student;
 import sgms.util.DBManager;
-
+import sgms.model.Course;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -109,6 +109,75 @@ public class UcanaccessStudentDAO implements StudentDAO {
         }
     }
 
+    @Override
+    public List<Student> findByGradeLevel(int gradeLevel) throws SQLException {
+        final String sql = "SELECT * FROM tblStudents WHERE gradeLevel = ? ORDER BY lastName";
+        try (Connection c = DBManager.get();
+             PreparedStatement ps = c.prepareStatement(sql)) {
+
+            ps.setInt(1, gradeLevel);
+            try (ResultSet rs = ps.executeQuery()) {
+                List<Student> list = new ArrayList<>();
+                while (rs.next()) {
+                    list.add(map(rs));
+                }
+                return list;
+            }
+        }
+    }
+
+    @Override
+    public List<Integer> findGradeLevels() throws SQLException {
+        final String sql = "SELECT DISTINCT gradeLevel FROM tblStudents ORDER BY gradeLevel";
+        try (Connection c = DBManager.get();
+             Statement st = c.createStatement();
+             ResultSet rs = st.executeQuery(sql)) {
+
+            List<Integer> grades = new ArrayList<>();
+            while (rs.next()) {
+                grades.add(rs.getInt("gradeLevel"));
+            }
+            return grades;
+        }
+    }
+
+    @Override
+    public List<Course> findCourses() throws SQLException {
+        final String sql = "SELECT courseId, courseName FROM tblCourses ORDER BY courseName";
+        try (Connection c = DBManager.get();
+             Statement st = c.createStatement();
+             ResultSet rs = st.executeQuery(sql)) {
+
+            List<Course> courses = new ArrayList<>();
+            while (rs.next()) {
+                courses.add(new Course(rs.getInt("courseId"), rs.getString("courseName")));
+            }
+            return courses;
+        }
+    }
+
+    @Override
+    public List<Student> findByCourse(int courseId) throws SQLException {
+        final String sql = """
+            SELECT DISTINCT s.* FROM tblStudents s
+            JOIN tblAttendance a ON s.studentId = a.studentId
+            WHERE a.courseId = ?
+            ORDER BY s.lastName
+        """;
+        try (Connection c = DBManager.get();
+             PreparedStatement ps = c.prepareStatement(sql)) {
+
+            ps.setInt(1, courseId);
+            try (ResultSet rs = ps.executeQuery()) {
+                List<Student> list = new ArrayList<>();
+                while (rs.next()) {
+                    list.add(map(rs));
+                }
+                return list;
+            }
+        }
+    }
+    
     /* ─────────────────────── Helper ─────────────────────────────── */
 
     /** Converts the current row of a ResultSet into a Student object. */

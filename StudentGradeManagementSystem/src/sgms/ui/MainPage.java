@@ -1,13 +1,22 @@
 package sgms.ui;
 
 import java.awt.Color;
+import java.util.List;
+import javax.swing.JOptionPane;
+import sgms.dao.StudentDAO;
+import sgms.dao.impl.UcanaccessStudentDAO;
+import sgms.model.Student;
+import sgms.model.Course;
 
 /**
- *
- * @author jacqu
+ * 
+ * @author Jacques Smit 12E
+ *  Main application frame that hosts the navigation sidebar and a data table
  */
 public class MainPage extends javax.swing.JFrame {
 
+    private final StudentDAO studentDAO = new UcanaccessStudentDAO();
+    private StudentTableModel studentTableModel;
     /**
      * Creates new form MainFrame
      */
@@ -15,7 +24,9 @@ public class MainPage extends javax.swing.JFrame {
         initComponents();
         jTextFieldSearch.setText("Search");
         jTextFieldSearch.setForeground(Color.GRAY);
-
+        jButtonSave.addActionListener(this::jButtonSaveActionPerformed);
+        jButtonEdit.addActionListener(this::jButtonEditActionPerformed);
+        loadCourses();
     }
 
     /**
@@ -165,7 +176,6 @@ public class MainPage extends javax.swing.JFrame {
         jPanel4.setForeground(java.awt.Color.white);
         jPanel4.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
 
-        jComboBox.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
         jComboBox.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 jComboBoxActionPerformed(evt);
@@ -192,11 +202,21 @@ public class MainPage extends javax.swing.JFrame {
         jButtonSave.setBackground(new java.awt.Color(6, 136, 6));
         jButtonSave.setFont(new java.awt.Font("Helvetica Neue", 0, 12)); // NOI18N
         jButtonSave.setText("Save");
+        jButtonSave.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButtonSaveActionPerformed(evt);
+            }
+        });
         jPanel4.add(jButtonSave, new org.netbeans.lib.awtextra.AbsoluteConstraints(964, 10, 67, -1));
 
         jButtonEdit.setBackground(new java.awt.Color(204, 153, 0));
         jButtonEdit.setFont(new java.awt.Font("Helvetica Neue", 0, 12)); // NOI18N
         jButtonEdit.setText("Edit");
+        jButtonEdit.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButtonEditActionPerformed(evt);
+            }
+        });
         jPanel4.add(jButtonEdit, new org.netbeans.lib.awtextra.AbsoluteConstraints(891, 10, 67, -1));
 
         jButtonDelete.setBackground(new java.awt.Color(187, 52, 6));
@@ -209,7 +229,7 @@ public class MainPage extends javax.swing.JFrame {
         });
         jPanel4.add(jButtonDelete, new org.netbeans.lib.awtextra.AbsoluteConstraints(815, 10, 70, -1));
 
-        jButtonAdd.setBackground(new java.awt.Color(51, 153, 255));
+        jButtonAdd.setBackground(new java.awt.Color(0, 153, 255));
         jButtonAdd.setFont(new java.awt.Font("Helvetica Neue", 0, 12)); // NOI18N
         jButtonAdd.setText("Add");
         jButtonAdd.addActionListener(new java.awt.event.ActionListener() {
@@ -339,19 +359,42 @@ public class MainPage extends javax.swing.JFrame {
     }//GEN-LAST:event_jButtonManageCoursesActionPerformed
 
     private void jButtonViewStudentsActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonViewStudentsActionPerformed
-        // TODO add your handling code here:
+        loadStudentsForSelectedCourse();
     }//GEN-LAST:event_jButtonViewStudentsActionPerformed
 
     private void jButtonAddActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonAddActionPerformed
-        // TODO add your handling code here:
+        if (studentTableModel != null) {
+            Student s = new Student("", "", 0);
+            studentTableModel.addStudent(s);
+            int row = studentTableModel.getRowCount() - 1;
+            jTable.setRowSelectionInterval(row, row);
+        }
     }//GEN-LAST:event_jButtonAddActionPerformed
 
     private void jButtonDeleteActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonDeleteActionPerformed
-        // TODO add your handling code here:
+        if (studentTableModel == null) {
+            return;
+        }
+        int row = jTable.getSelectedRow();
+        if (row >= 0) {
+            Student s = studentTableModel.getStudent(row);
+            if (s.getStudentId() > 0) {
+                try {
+                    studentDAO.delete(s.getStudentId());
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(this, "Unable to delete student: " + ex.getMessage(),
+                            "Error", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+            }
+            studentTableModel.removeStudent(row);
+        }
     }//GEN-LAST:event_jButtonDeleteActionPerformed
 
     private void jComboBoxActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jComboBoxActionPerformed
-        // TODO add your handling code here:
+        if (studentTableModel != null) {
+            loadStudentsForSelectedCourse();
+        }
     }//GEN-LAST:event_jComboBoxActionPerformed
 
     private void jTextFieldSearchActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jTextFieldSearchActionPerformed
@@ -382,6 +425,40 @@ public class MainPage extends javax.swing.JFrame {
             jTextFieldSearch.setForeground(Color.GRAY);
         }
     }//GEN-LAST:event_jTextFieldSearchFocusLost
+
+    private void jButtonSaveActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonSaveActionPerformed
+        if (studentTableModel == null) {
+            return;
+        }
+        try {
+            for (Student s : studentTableModel.getStudents()) {
+                if (s.getStudentId() == 0) {
+                    studentDAO.add(s);
+                } else {
+                    studentDAO.update(s);
+                }
+            }
+            // Refresh table to show any generated IDs
+            int courseId = getSelectedCourseId();
+            List<Student> students = courseId > 0 ?
+                    studentDAO.findByCourse(courseId) : studentDAO.findAll();
+            studentTableModel.setStudents(students);
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, "Unable to save students: " + ex.getMessage(),
+                    "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }//GEN-LAST:event_jButtonSaveActionPerformed
+
+    private void jButtonEditActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonEditActionPerformed
+        if (studentTableModel == null) {
+            return;
+        }
+        int row = jTable.getSelectedRow();
+        int col = jTable.getSelectedColumn();
+        if (row >= 0 && col >= 0) {
+            jTable.editCellAt(row, col);
+        }
+    }//GEN-LAST:event_jButtonEditActionPerformed
 
     /**
      * @param args the command line arguments
@@ -443,7 +520,7 @@ public class MainPage extends javax.swing.JFrame {
     private javax.swing.JButton jButtonViewFinalGrades;
     private javax.swing.JButton jButtonViewStudentGrades;
     private javax.swing.JButton jButtonViewStudents;
-    private javax.swing.JComboBox<String> jComboBox;
+    private javax.swing.JComboBox<Course> jComboBox;
     private javax.swing.JLabel jLabelMadeByJacquesSmit;
     private javax.swing.JLabel jLabelSGMS;
     private javax.swing.JLabel jLabelWelcomeName;
@@ -456,4 +533,41 @@ public class MainPage extends javax.swing.JFrame {
     private javax.swing.JTable jTable;
     private javax.swing.JTextField jTextFieldSearch;
     // End of variables declaration//GEN-END:variables
+
+private void loadCourses() {
+        try {
+            List<Course> courses = studentDAO.findCourses();
+            jComboBox.removeAllItems();
+            jComboBox.addItem(new Course(0, "ALL"));
+            for (Course c : courses) {
+                jComboBox.addItem(c);
+            }
+            jComboBox.setSelectedIndex(0);
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, "Unable to load courses: " + ex.getMessage(),
+                    "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private int getSelectedCourseId() {
+        Object sel = jComboBox.getSelectedItem();
+        if (sel instanceof Course c) {
+            return c.getCourseId();
+        }
+        return 0;
+    }
+
+    private void loadStudentsForSelectedCourse() {
+        try {
+            int courseId = getSelectedCourseId();
+            List<Student> students = courseId > 0 ?
+                    studentDAO.findByCourse(courseId) : studentDAO.findAll();
+            studentTableModel = new StudentTableModel(students);
+            jTable.setModel(studentTableModel);
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, "Unable to load students: " + ex.getMessage(),
+                    "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+    
 }

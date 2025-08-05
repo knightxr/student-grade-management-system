@@ -1,5 +1,7 @@
 package sgms.ui;
 
+import java.awt.Color;
+
 /**
  *
  * @author jacqu
@@ -11,11 +13,14 @@ public class MainPage extends javax.swing.JFrame {
      */
     public MainPage() {
         initComponents();
+        jTextFieldSearch.setText("Search");
+        jTextFieldSearch.setForeground(Color.GRAY);
+
     }
-    
+
     /**
-     * Creates a new MainPage and displays a personalized welcome message
-     * for the logged-in user.
+     * Creates a new MainPage and displays a personalized welcome message for
+     * the logged-in user.
      *
      * @param userFullName the full name of the user to display
      */
@@ -169,6 +174,14 @@ public class MainPage extends javax.swing.JFrame {
         jPanel4.add(jComboBox, new org.netbeans.lib.awtextra.AbsoluteConstraints(18, 6, 272, 35));
 
         jTextFieldSearch.setText("Search");
+        jTextFieldSearch.addFocusListener(new java.awt.event.FocusAdapter() {
+            public void focusGained(java.awt.event.FocusEvent evt) {
+                jTextFieldSearchFocusGained(evt);
+            }
+            public void focusLost(java.awt.event.FocusEvent evt) {
+                jTextFieldSearchFocusLost(evt);
+            }
+        });
         jTextFieldSearch.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 jTextFieldSearchActionPerformed(evt);
@@ -176,7 +189,7 @@ public class MainPage extends javax.swing.JFrame {
         });
         jPanel4.add(jTextFieldSearch, new org.netbeans.lib.awtextra.AbsoluteConstraints(380, 6, 253, 35));
 
-        jButtonSave.setBackground(new java.awt.Color(0, 153, 0));
+        jButtonSave.setBackground(new java.awt.Color(6, 136, 6));
         jButtonSave.setFont(new java.awt.Font("Helvetica Neue", 0, 12)); // NOI18N
         jButtonSave.setText("Save");
         jPanel4.add(jButtonSave, new org.netbeans.lib.awtextra.AbsoluteConstraints(964, 10, 67, -1));
@@ -186,7 +199,7 @@ public class MainPage extends javax.swing.JFrame {
         jButtonEdit.setText("Edit");
         jPanel4.add(jButtonEdit, new org.netbeans.lib.awtextra.AbsoluteConstraints(891, 10, 67, -1));
 
-        jButtonDelete.setBackground(new java.awt.Color(204, 51, 0));
+        jButtonDelete.setBackground(new java.awt.Color(187, 52, 6));
         jButtonDelete.setFont(new java.awt.Font("Helvetica Neue", 0, 12)); // NOI18N
         jButtonDelete.setText("Delete");
         jButtonDelete.addActionListener(new java.awt.event.ActionListener() {
@@ -233,13 +246,11 @@ public class MainPage extends javax.swing.JFrame {
         jPanel6.setForeground(new java.awt.Color(255, 255, 255));
         jPanel6.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
 
-        jLabelMadeByJacquesSmit.setBackground(null);
         jLabelMadeByJacquesSmit.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jLabelMadeByJacquesSmit.setForeground(new java.awt.Color(0, 0, 0));
         jLabelMadeByJacquesSmit.setText("Made by Jacques Smit");
         jPanel6.add(jLabelMadeByJacquesSmit, new org.netbeans.lib.awtextra.AbsoluteConstraints(40, 10, -1, -1));
 
-        jButtonHelp.setBackground(null);
         jButtonHelp.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jButtonHelp.setForeground(new java.awt.Color(0, 0, 0));
         jButtonHelp.setText("Need help? Click here");
@@ -256,9 +267,7 @@ public class MainPage extends javax.swing.JFrame {
         jPanel5.setBorder(javax.swing.BorderFactory.createMatteBorder(0, 0, 1, 0, new java.awt.Color(153, 153, 153)));
         jPanel5.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
 
-        jLabelSGMS.setBackground(null);
         jLabelSGMS.setFont(new java.awt.Font("Malgun Gothic", 1, 30)); // NOI18N
-        jLabelSGMS.setForeground(null);
         jLabelSGMS.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         jLabelSGMS.setText("Student Grade Management System");
         jLabelSGMS.setVerticalAlignment(javax.swing.SwingConstants.TOP);
@@ -267,6 +276,11 @@ public class MainPage extends javax.swing.JFrame {
 
         jButtonLogout.setBackground(new java.awt.Color(255, 51, 51));
         jButtonLogout.setText("Logout");
+        jButtonLogout.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButtonLogoutActionPerformed(evt);
+            }
+        });
         jPanel5.add(jButtonLogout, new org.netbeans.lib.awtextra.AbsoluteConstraints(10, 6, -1, -1));
 
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
@@ -347,6 +361,27 @@ public class MainPage extends javax.swing.JFrame {
     private void jButtonHelpActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonHelpActionPerformed
         // TODO add your handling code here:
     }//GEN-LAST:event_jButtonHelpActionPerformed
+
+    private void jButtonLogoutActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonLogoutActionPerformed
+        LoginPage loginPage = new LoginPage();
+        loginPage.setVisible(true);
+        dispose();
+
+    }//GEN-LAST:event_jButtonLogoutActionPerformed
+
+    private void jTextFieldSearchFocusGained(java.awt.event.FocusEvent evt) {//GEN-FIRST:event_jTextFieldSearchFocusGained
+        if ("Search".equals(jTextFieldSearch.getText())) {
+            jTextFieldSearch.setText("");
+            jTextFieldSearch.setForeground(Color.BLACK);
+        }
+    }//GEN-LAST:event_jTextFieldSearchFocusGained
+
+    private void jTextFieldSearchFocusLost(java.awt.event.FocusEvent evt) {//GEN-FIRST:event_jTextFieldSearchFocusLost
+        if (jTextFieldSearch.getText().isEmpty()) {
+            jTextFieldSearch.setText("Search");
+            jTextFieldSearch.setForeground(Color.GRAY);
+        }
+    }//GEN-LAST:event_jTextFieldSearchFocusLost
 
     /**
      * @param args the command line arguments

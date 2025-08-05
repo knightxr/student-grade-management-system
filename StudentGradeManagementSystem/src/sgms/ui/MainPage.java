@@ -12,6 +12,26 @@ public class MainPage extends javax.swing.JFrame {
     public MainPage() {
         initComponents();
     }
+    
+    /**
+     * Creates a new MainPage and displays a personalized welcome message
+     * for the logged-in user.
+     *
+     * @param userFullName the full name of the user to display
+     */
+    public MainPage(String userFullName) {
+        this();
+        setWelcomeName(userFullName);
+    }
+
+    /**
+     * Updates the welcome label with the provided user's full name.
+     *
+     * @param userFullName the name to show in the welcome message
+     */
+    public void setWelcomeName(String userFullName) {
+        jLabelWelcomeName.setText("<html> <center>Welcome<br>" + userFullName + "!</center></html>");
+    }
 
     /**
      * This method is called from within the constructor to initialize the form.
@@ -213,14 +233,15 @@ public class MainPage extends javax.swing.JFrame {
         jPanel6.setForeground(new java.awt.Color(255, 255, 255));
         jPanel6.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
 
+        jLabelMadeByJacquesSmit.setBackground(null);
         jLabelMadeByJacquesSmit.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        jLabelMadeByJacquesSmit.setForeground(new java.awt.Color(255, 255, 255));
+        jLabelMadeByJacquesSmit.setForeground(new java.awt.Color(0, 0, 0));
         jLabelMadeByJacquesSmit.setText("Made by Jacques Smit");
         jPanel6.add(jLabelMadeByJacquesSmit, new org.netbeans.lib.awtextra.AbsoluteConstraints(40, 10, -1, -1));
 
         jButtonHelp.setBackground(null);
         jButtonHelp.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        jButtonHelp.setForeground(new java.awt.Color(255, 255, 255));
+        jButtonHelp.setForeground(new java.awt.Color(0, 0, 0));
         jButtonHelp.setText("Need help? Click here");
         jButtonHelp.setToolTipText("");
         jButtonHelp.setBorder(null);
@@ -235,9 +256,9 @@ public class MainPage extends javax.swing.JFrame {
         jPanel5.setBorder(javax.swing.BorderFactory.createMatteBorder(0, 0, 1, 0, new java.awt.Color(153, 153, 153)));
         jPanel5.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
 
-        jLabelSGMS.setBackground(new java.awt.Color(255, 255, 255));
+        jLabelSGMS.setBackground(null);
         jLabelSGMS.setFont(new java.awt.Font("Malgun Gothic", 1, 30)); // NOI18N
-        jLabelSGMS.setForeground(new java.awt.Color(255, 255, 255));
+        jLabelSGMS.setForeground(null);
         jLabelSGMS.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         jLabelSGMS.setText("Student Grade Management System");
         jLabelSGMS.setVerticalAlignment(javax.swing.SwingConstants.TOP);

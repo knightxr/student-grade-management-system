@@ -220,7 +220,7 @@ public class LoginPage extends javax.swing.JFrame {
 
         String userFullName = credentialManager.validateLogin(username, password);
         if (userFullName != null) {
-            MainPage mainPage = new MainPage();
+            MainPage mainPage = new MainPage(userFullName);
             mainPage.setVisible(true);
             dispose();
         } else {

@@ -26,7 +26,7 @@ public class CredentialManager {
     public String validateLogin(String username, String password) {
         username = username.trim().toLowerCase();
         password = hashPassword(password.trim());
-        String sql = "SELECT username FROM tblUsers WHERE username=? AND passwordHash=?";
+        String sql = "SELECT fullName FROM tblUsers WHERE username=? AND passwordHash=?";
         Connection c = null;
         PreparedStatement ps = null;
         ResultSet rs = null;
@@ -37,7 +37,7 @@ public class CredentialManager {
             ps.setString(2, password);
             rs = ps.executeQuery();
             if (rs.next()) {
-                return rs.getString("username");
+                return rs.getString("fullName");
             }
         } catch (SQLException e) {
             e.printStackTrace();

@@ -2,6 +2,7 @@ package sgms.ui;
 
 import java.util.ArrayList;
 import java.util.List;
+import javax.swing.JOptionPane;
 import javax.swing.table.AbstractTableModel;
 import sgms.model.Student;
 
@@ -54,13 +55,32 @@ public class StudentTableModel extends AbstractTableModel {
     public void setValueAt(Object aValue, int rowIndex, int columnIndex) {
         Student s = students.get(rowIndex);
         switch (columnIndex) {
-            case 1 -> s.setFirstName(String.valueOf(aValue));
-            case 2 -> s.setLastName(String.valueOf(aValue));
+            case 1 -> {
+                String val = String.valueOf(aValue).trim();
+                if (val.isEmpty()) {
+                    JOptionPane.showMessageDialog(null, "First name cannot be blank.");
+                } else {
+                    s.setFirstName(val);
+                }
+            }
+            case 2 -> {
+                String val = String.valueOf(aValue).trim();
+                if (val.isEmpty()) {
+                    JOptionPane.showMessageDialog(null, "Last name cannot be blank.");
+                } else {
+                    s.setLastName(val);
+                }
+            }
             case 3 -> {
                 try {
-                    s.setGradeLevel(Integer.parseInt(String.valueOf(aValue)));
+                    int grade = Integer.parseInt(String.valueOf(aValue).trim());
+                    if (grade <= 0) {
+                        JOptionPane.showMessageDialog(null, "Grade must be a positive number.");
+                    } else {
+                        s.setGradeLevel(grade);
+                    }
                 } catch (NumberFormatException e) {
-                    // Ignore invalid numbers; keep previous value
+                    JOptionPane.showMessageDialog(null, "Grade must be a number.");
                 }
             }
         }

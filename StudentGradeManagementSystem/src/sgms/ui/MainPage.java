@@ -2,11 +2,15 @@ package sgms.ui;
 
 import java.awt.Color;
 import java.awt.Component;
+import java.awt.Font;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import javax.swing.JOptionPane;
 import javax.swing.JTable;
+import javax.swing.RowSorter;
+import javax.swing.SortOrder;
+import javax.swing.table.TableRowSorter;
 import sgms.dao.StudentDAO;
 import sgms.dao.impl.UcanaccessStudentDAO;
 import sgms.model.Student;
@@ -39,10 +43,12 @@ public class MainPage extends javax.swing.JFrame {
                     } else if (MainPage.this.studentSelectionModel.isDeselected(modelRow)) {
                         c.setBackground(Color.RED);
                     } else {
-                        c.setBackground(isRowSelected(row) ? getSelectionBackground() : Color.WHITE);
+                        Color base = (row % 2 == 0) ? Color.WHITE : new Color(245, 245, 245);
+                        c.setBackground(isRowSelected(row) ? getSelectionBackground() : base);
                     }
                 } else {
-                    c.setBackground(isRowSelected(row) ? getSelectionBackground() : Color.WHITE);
+                    Color base = (row % 2 == 0) ? Color.WHITE : new Color(245, 245, 245);
+                    c.setBackground(isRowSelected(row) ? getSelectionBackground() : base);
                 }
                 return c;
             }
@@ -50,6 +56,7 @@ public class MainPage extends javax.swing.JFrame {
         jScrollPane.setViewportView(jTable);
         jTable.setModel(new javax.swing.table.DefaultTableModel());
         jTable.setAutoCreateRowSorter(true);
+        jTable.getTableHeader().setFont(jTable.getTableHeader().getFont().deriveFont(Font.BOLD));
         jTextFieldSearch.setText("Search");
         jTextFieldSearch.setForeground(Color.GRAY);
         jButtonSave.addActionListener(this::jButtonSaveActionPerformed);
@@ -515,6 +522,14 @@ public class MainPage extends javax.swing.JFrame {
         if (studentTableModel == null) {
             return;
         }
+        for (Student s : studentTableModel.getStudents()) {
+            if (s.getFirstName().trim().isEmpty() || s.getLastName().trim().isEmpty() || s.getGradeLevel() <= 0) {
+                JOptionPane.showMessageDialog(this,
+                        "All student fields must be filled.",
+                        "Validation Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+        }
         try {
             for (Student s : studentTableModel.getStudents()) {
                 if (s.getStudentId() == 0) {
@@ -630,7 +645,7 @@ private void loadCourses() {
         try {
             List<Course> courses = studentDAO.findCourses();
             jComboBox.removeAllItems();
-            jComboBox.addItem(new Course(0, "ALL"));
+            jComboBox.addItem(new Course(0, "All Students"));
             for (Course c : courses) {
                 jComboBox.addItem(c);
             }
@@ -657,6 +672,8 @@ private void loadCourses() {
             studentTableModel = new StudentTableModel(students);
             jTable.setModel(studentTableModel);
             jTable.setAutoCreateRowSorter(true);
+            TableRowSorter<?> sorter = (TableRowSorter<?>) jTable.getRowSorter();
+            sorter.setSortKeys(List.of(new RowSorter.SortKey(2, SortOrder.ASCENDING)));
             selectionMode = false;
             studentSelectionModel = null;
         } catch (Exception ex) {
@@ -677,6 +694,8 @@ private void loadCourses() {
             studentSelectionModel = new StudentSelectionTableModel(all, initial);
             jTable.setModel(studentSelectionModel);
             jTable.setAutoCreateRowSorter(true);
+            TableRowSorter<?> sorter = (TableRowSorter<?>) jTable.getRowSorter();
+            sorter.setSortKeys(List.of(new RowSorter.SortKey(2, SortOrder.ASCENDING)));
             selectionMode = true;
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this, "Unable to load students: " + ex.getMessage(),

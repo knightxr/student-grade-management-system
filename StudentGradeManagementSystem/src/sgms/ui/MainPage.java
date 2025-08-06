@@ -695,7 +695,10 @@ private void loadCourses() {
             jTable.setModel(studentSelectionModel);
             jTable.setAutoCreateRowSorter(true);
             TableRowSorter<?> sorter = (TableRowSorter<?>) jTable.getRowSorter();
-            sorter.setSortKeys(List.of(new RowSorter.SortKey(2, SortOrder.ASCENDING)));
+            sorter.setSortKeys(List.of(
+                    new RowSorter.SortKey(4, SortOrder.ASCENDING),
+                    new RowSorter.SortKey(3, SortOrder.ASCENDING),
+                    new RowSorter.SortKey(2, SortOrder.ASCENDING)));
             selectionMode = true;
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this, "Unable to load students: " + ex.getMessage(),

@@ -41,7 +41,12 @@ public class StudentSelectionTableModel extends AbstractTableModel {
 
     @Override
     public Class<?> getColumnClass(int columnIndex) {
-        return columnIndex == 0 ? Boolean.class : Object.class;
+        return switch (columnIndex) {
+            case 0 -> Boolean.class;
+            case 1, 4 -> Integer.class;
+            case 2, 3 -> String.class;
+            default -> Object.class;
+        };
     }
 
     @Override

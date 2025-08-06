@@ -1,4 +1,4 @@
-package sgms.service;
+package sgms.main;
 
 import com.formdev.flatlaf.themes.FlatMacLightLaf;
 import javax.swing.UIManager;

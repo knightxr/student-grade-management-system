@@ -694,6 +694,11 @@ private void loadCourses() {
             studentSelectionModel = new StudentSelectionTableModel(all, initial);
             jTable.setModel(studentSelectionModel);
             jTable.setAutoCreateRowSorter(true);
+            javax.swing.table.DefaultTableCellRenderer leftRenderer =
+                    new javax.swing.table.DefaultTableCellRenderer();
+            leftRenderer.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+            jTable.getColumnModel().getColumn(1).setCellRenderer(leftRenderer);
+            jTable.getColumnModel().getColumn(4).setCellRenderer(leftRenderer);
             TableRowSorter<?> sorter = (TableRowSorter<?>) jTable.getRowSorter();
             sorter.setSortKeys(List.of(
                     new RowSorter.SortKey(4, SortOrder.ASCENDING),

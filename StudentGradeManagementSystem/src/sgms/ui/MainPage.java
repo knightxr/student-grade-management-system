@@ -21,7 +21,7 @@ public class MainPage extends javax.swing.JFrame {
 
     private final StudentDAO studentDAO = new UcanaccessStudentDAO();
     private StudentTableModel studentTableModel;
-    private StudentSelectionTableModel selectionModel;
+    private StudentSelectionTableModel studentSelectionModel;
     private boolean selectionMode = false;
     /**
      * Creates new form MainFrame
@@ -32,11 +32,11 @@ public class MainPage extends javax.swing.JFrame {
             @Override
             public Component prepareRenderer(javax.swing.table.TableCellRenderer renderer, int row, int column) {
                 Component c = super.prepareRenderer(renderer, row, column);
-                if (selectionMode && selectionModel != null) {
+                if (selectionMode && MainPage.this.studentSelectionModel != null) {
                     int modelRow = convertRowIndexToModel(row);
-                    if (selectionModel.isNewlySelected(modelRow)) {
+                    if (MainPage.this.studentSelectionModel.isNewlySelected(modelRow)) {
                         c.setBackground(Color.GREEN);
-                    } else if (selectionModel.isDeselected(modelRow)) {
+                    } else if (MainPage.this.studentSelectionModel.isDeselected(modelRow)) {
                         c.setBackground(Color.RED);
                     } else {
                         c.setBackground(isRowSelected(row) ? getSelectionBackground() : Color.WHITE);
@@ -488,11 +488,11 @@ public class MainPage extends javax.swing.JFrame {
     }//GEN-LAST:event_jTextFieldSearchFocusLost
 
     private void jButtonSaveActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonSaveActionPerformed
-        if (selectionMode && selectionModel != null) {
+        if (selectionMode && studentSelectionModel != null) {
             try {
                 int courseId = getSelectedCourseId();
-                Set<Integer> selected = selectionModel.getSelectedStudentIds();
-                Set<Integer> original = selectionModel.getOriginallySelectedIds();
+                Set<Integer> selected = studentSelectionModel.getSelectedStudentIds();
+                Set<Integer> original = studentSelectionModel.getOriginallySelectedIds();
                 for (Integer id : selected) {
                     if (!original.contains(id)) {
                         studentDAO.enrollStudentInCourse(id, courseId);
@@ -504,7 +504,7 @@ public class MainPage extends javax.swing.JFrame {
                     }
                 }
                 selectionMode = false;
-                selectionModel = null;
+                studentSelectionModel = null;
                 loadStudentsForSelectedCourse();
             } catch (Exception ex) {
                 JOptionPane.showMessageDialog(this, "Unable to update enrollments: " + ex.getMessage(),
@@ -658,7 +658,7 @@ private void loadCourses() {
             jTable.setModel(studentTableModel);
             jTable.setAutoCreateRowSorter(true);
             selectionMode = false;
-            selectionModel = null;
+            studentSelectionModel = null;
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this, "Unable to load students: " + ex.getMessage(),
                     "Error", JOptionPane.ERROR_MESSAGE);
@@ -674,8 +674,8 @@ private void loadCourses() {
             for (Student s : enrolled) {
                 initial.add(s.getStudentId());
             }
-            selectionModel = new StudentSelectionTableModel(all, initial);
-            jTable.setModel(selectionModel);
+            studentSelectionModel = new StudentSelectionTableModel(all, initial);
+            jTable.setModel(studentSelectionModel);
             jTable.setAutoCreateRowSorter(true);
             selectionMode = true;
         } catch (Exception ex) {

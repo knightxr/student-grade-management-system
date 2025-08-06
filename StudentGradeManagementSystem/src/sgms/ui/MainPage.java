@@ -1,8 +1,12 @@
 package sgms.ui;
 
 import java.awt.Color;
+import java.awt.Component;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import javax.swing.JOptionPane;
+import javax.swing.JTable;
 import sgms.dao.StudentDAO;
 import sgms.dao.impl.UcanaccessStudentDAO;
 import sgms.model.Student;
@@ -17,16 +21,41 @@ public class MainPage extends javax.swing.JFrame {
 
     private final StudentDAO studentDAO = new UcanaccessStudentDAO();
     private StudentTableModel studentTableModel;
+    private StudentSelectionTableModel selectionModel;
+    private boolean selectionMode = false;
     /**
      * Creates new form MainFrame
      */
     public MainPage() {
         initComponents();
+        jTable = new JTable() {
+            @Override
+            public Component prepareRenderer(javax.swing.table.TableCellRenderer renderer, int row, int column) {
+                Component c = super.prepareRenderer(renderer, row, column);
+                if (selectionMode && selectionModel != null) {
+                    int modelRow = convertRowIndexToModel(row);
+                    if (selectionModel.isNewlySelected(modelRow)) {
+                        c.setBackground(Color.GREEN);
+                    } else if (selectionModel.isDeselected(modelRow)) {
+                        c.setBackground(Color.RED);
+                    } else {
+                        c.setBackground(isRowSelected(row) ? getSelectionBackground() : Color.WHITE);
+                    }
+                } else {
+                    c.setBackground(isRowSelected(row) ? getSelectionBackground() : Color.WHITE);
+                }
+                return c;
+            }
+        };
+        jScrollPane.setViewportView(jTable);
+        jTable.setModel(new javax.swing.table.DefaultTableModel());
+        jTable.setAutoCreateRowSorter(true);
         jTextFieldSearch.setText("Search");
         jTextFieldSearch.setForeground(Color.GRAY);
         jButtonSave.addActionListener(this::jButtonSaveActionPerformed);
         jButtonEdit.addActionListener(this::jButtonEditActionPerformed);
-        loadCourses();
+        jComboBox.setEnabled(false);
+        jComboBox.removeAllItems();
     }
 
     /**
@@ -359,20 +388,52 @@ public class MainPage extends javax.swing.JFrame {
     }//GEN-LAST:event_jButtonManageCoursesActionPerformed
 
     private void jButtonViewStudentsActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonViewStudentsActionPerformed
+        if (!jComboBox.isEnabled()) {
+            loadCourses();
+            jComboBox.setEnabled(true);
+        }
         loadStudentsForSelectedCourse();
     }//GEN-LAST:event_jButtonViewStudentsActionPerformed
 
     private void jButtonAddActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonAddActionPerformed
+        int courseId = getSelectedCourseId();
+        if (courseId > 0) {
+            if (!selectionMode) {
+                startEnrollmentEdit();
+            }
+            return;
+        }
         if (studentTableModel != null) {
-            Student s = new Student("", "", 0);
-            studentTableModel.addStudent(s);
-            int row = studentTableModel.getRowCount() - 1;
-            jTable.setRowSelectionInterval(row, row);
+            try {
+                Student s = studentDAO.add(new Student("", "", 0));
+                if (jTable.getRowSorter() != null) {
+                    jTable.getRowSorter().setSortKeys(null);
+                }
+                studentTableModel.addStudent(s);
+                int row = studentTableModel.getRowCount() - 1;
+                jTable.setRowSelectionInterval(row, row);
+                jTable.scrollRectToVisible(jTable.getCellRect(row, 0, true));
+                jTable.editCellAt(row, 1);
+                Component editor = jTable.getEditorComponent();
+                if (editor != null) {
+                    editor.requestFocusInWindow();
+                }
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, "Unable to add student: " + ex.getMessage(),
+                        "Error", JOptionPane.ERROR_MESSAGE);
+            }
         }
     }//GEN-LAST:event_jButtonAddActionPerformed
 
     private void jButtonDeleteActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonDeleteActionPerformed
         if (studentTableModel == null) {
+            return;
+        }
+        int courseId = getSelectedCourseId();
+        if (courseId > 0) {
+            if (!selectionMode) {
+                startEnrollmentEdit();
+            }
             return;
         }
         int row = jTable.getSelectedRow();
@@ -427,6 +488,30 @@ public class MainPage extends javax.swing.JFrame {
     }//GEN-LAST:event_jTextFieldSearchFocusLost
 
     private void jButtonSaveActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonSaveActionPerformed
+        if (selectionMode && selectionModel != null) {
+            try {
+                int courseId = getSelectedCourseId();
+                Set<Integer> selected = selectionModel.getSelectedStudentIds();
+                Set<Integer> original = selectionModel.getOriginallySelectedIds();
+                for (Integer id : selected) {
+                    if (!original.contains(id)) {
+                        studentDAO.enrollStudentInCourse(id, courseId);
+                    }
+                }
+                for (Integer id : original) {
+                    if (!selected.contains(id)) {
+                        studentDAO.removeStudentFromCourse(id, courseId);
+                    }
+                }
+                selectionMode = false;
+                selectionModel = null;
+                loadStudentsForSelectedCourse();
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, "Unable to update enrollments: " + ex.getMessage(),
+                        "Error", JOptionPane.ERROR_MESSAGE);
+            }
+            return;
+        }
         if (studentTableModel == null) {
             return;
         }
@@ -451,6 +536,13 @@ public class MainPage extends javax.swing.JFrame {
 
     private void jButtonEditActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonEditActionPerformed
         if (studentTableModel == null) {
+            return;
+        }
+        int courseId = getSelectedCourseId();
+        if (courseId > 0) {
+            if (!selectionMode) {
+                startEnrollmentEdit();
+            }
             return;
         }
         int row = jTable.getSelectedRow();
@@ -564,6 +656,28 @@ private void loadCourses() {
                     studentDAO.findByCourse(courseId) : studentDAO.findAll();
             studentTableModel = new StudentTableModel(students);
             jTable.setModel(studentTableModel);
+            jTable.setAutoCreateRowSorter(true);
+            selectionMode = false;
+            selectionModel = null;
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, "Unable to load students: " + ex.getMessage(),
+                    "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void startEnrollmentEdit() {
+        try {
+            int courseId = getSelectedCourseId();
+            List<Student> all = studentDAO.findAll();
+            List<Student> enrolled = studentDAO.findByCourse(courseId);
+            Set<Integer> initial = new HashSet<>();
+            for (Student s : enrolled) {
+                initial.add(s.getStudentId());
+            }
+            selectionModel = new StudentSelectionTableModel(all, initial);
+            jTable.setModel(selectionModel);
+            jTable.setAutoCreateRowSorter(true);
+            selectionMode = true;
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this, "Unable to load students: " + ex.getMessage(),
                     "Error", JOptionPane.ERROR_MESSAGE);

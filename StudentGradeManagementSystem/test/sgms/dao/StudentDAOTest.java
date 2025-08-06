@@ -2,6 +2,8 @@ package sgms.dao;
 
 import sgms.dao.impl.UcanaccessStudentDAO;
 import sgms.model.Student;
+import sgms.util.DBManager;
+import java.sql.*;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -32,5 +34,47 @@ public class StudentDAOTest {
         assertTrue("Row should delete", dao.delete(s.getStudentId()));
         assertFalse("Student should be gone",
                     dao.findById(s.getStudentId()).isPresent());
+    }
+
+    @Test
+    public void enrollStudentInCourse() throws Exception {
+        // Create student
+        Student s = dao.add(new Student("Course", "Tester", 9));
+
+        int courseId;
+        String code = "TST" + System.currentTimeMillis();
+        // Insert course directly
+        try (Connection c = DBManager.get();
+             PreparedStatement ps = c.prepareStatement(
+                     "INSERT INTO tblCourses(courseCode, courseName) VALUES (?, ?)",
+                     Statement.RETURN_GENERATED_KEYS)) {
+            ps.setString(1, code);
+            ps.setString(2, "Test Course");
+            ps.executeUpdate();
+            try (ResultSet keys = ps.getGeneratedKeys()) {
+                keys.next();
+                courseId = keys.getInt(1);
+            }
+        }
+
+        // Enroll
+        assertTrue(dao.enrollStudentInCourse(s.getStudentId(), courseId));
+
+        // Verify
+        assertTrue(dao.findByCourse(courseId).stream()
+                .anyMatch(st -> st.getStudentId() == s.getStudentId()));
+
+        // Remove enrollment
+        assertTrue(dao.removeStudentFromCourse(s.getStudentId(), courseId));
+        assertFalse(dao.findByCourse(courseId).stream()
+                .anyMatch(st -> st.getStudentId() == s.getStudentId()));
+
+        // Cleanup
+        try (Connection c = DBManager.get(); Statement st = c.createStatement()) {
+            st.executeUpdate("DELETE FROM tblStudentCourses WHERE studentId=" + s.getStudentId()
+                    + " AND courseId=" + courseId);
+            st.executeUpdate("DELETE FROM tblCourses WHERE courseId=" + courseId);
+        }
+        dao.delete(s.getStudentId());
     }
 }

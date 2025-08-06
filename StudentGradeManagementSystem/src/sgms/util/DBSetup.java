@@ -52,6 +52,17 @@ public class DBSetup {
                 )
             """);
 
+            // 3b ───────── STUDENT-COURSE ENROLLMENTS ──────────────────────
+            s.executeUpdate("""
+                CREATE TABLE tblStudentCourses (
+                    studentId  INTEGER NOT NULL,
+                    courseId   INTEGER NOT NULL,
+                    PRIMARY KEY (studentId, courseId),
+                    FOREIGN KEY (studentId) REFERENCES tblStudents(studentId),
+                    FOREIGN KEY (courseId)  REFERENCES tblCourses(courseId)
+                )
+            """);
+            
             // 4 ───────── ASSIGNMENTS ────────────────────────────────────────
             s.executeUpdate("""
                 CREATE TABLE tblAssignments (

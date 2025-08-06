@@ -22,6 +22,12 @@ public interface StudentDAO {
     /** Returns the distinct courses that currently exist in the DB. */
     List<Course> findCourses() throws Exception;
 
+    /** Links a student to a course. */
+    boolean enrollStudentInCourse(int studentId, int courseId) throws Exception;
+
     /** Returns all students enrolled in the given course. */
     List<Student> findByCourse(int courseId) throws Exception;
+
+    /** Removes a student from a specific course. */
+    boolean removeStudentFromCourse(int studentId, int courseId) throws Exception;
 }

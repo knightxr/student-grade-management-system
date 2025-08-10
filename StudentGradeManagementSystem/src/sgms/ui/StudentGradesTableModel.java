@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import javax.swing.JOptionPane;
 import javax.swing.table.AbstractTableModel;
 
 /**
@@ -69,12 +70,16 @@ public class StudentGradesTableModel extends AbstractTableModel {
         Student s = students.get(rowIndex);
         int assignmentId = assignments.get(columnIndex - 1).getAssignmentId();
         try {
-            int mark = Integer.parseInt(String.valueOf(aValue));
+            int mark = Integer.parseInt(String.valueOf(aValue).trim());
+            if (mark < 0 || mark > 100) {
+                JOptionPane.showMessageDialog(null, "Grade must be between 0 and 100.");
+                return;
+            }
             gradeDAO.upsert(s.getStudentId(), assignmentId, mark);
             grades.computeIfAbsent(s.getStudentId(), k -> new HashMap<>()).put(assignmentId, mark);
             fireTableCellUpdated(rowIndex, columnIndex);
         } catch (NumberFormatException ex) {
-            // ignore invalid input
+            JOptionPane.showMessageDialog(null, "Grade must be a number between 0 and 100.");
         } catch (Exception ex) {
             // ignore DB errors for simplicity
         }

@@ -427,10 +427,10 @@ public class MainPage extends javax.swing.JFrame {
     private void jButtonViewStudentGradesActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonViewStudentGradesActionPerformed
         loadCoursesForGrades();
         jComboBox.setEnabled(true);
-        jButtonAdd.setEnabled(false);
-        jButtonDelete.setEnabled(false);
-        jButtonSave.setEnabled(false);
-        jButtonEdit.setEnabled(false);
+        jButtonAdd.setEnabled(true);
+        jButtonDelete.setEnabled(true);
+        jButtonSave.setEnabled(true);
+        jButtonEdit.setEnabled(true);
         studentTableModel = null;
         finalGradesModel = null;
         studentSelectionModel = null;
@@ -466,17 +466,8 @@ public class MainPage extends javax.swing.JFrame {
         }
         if (studentGradesModel != null) {
             int courseId = getSelectedCourseId();
-            String title = JOptionPane.showInputDialog(this, "Assignment title:");
-            if (title == null || title.trim().isEmpty()) {
-                return;
-            }
-            AssignmentDAO dao = new UcanaccessAssignmentDAO();
-            try {
-                Assignment a = dao.add(new Assignment(courseId, title.trim()));
-                studentGradesModel.addAssignment(a);
-            } catch (Exception ex) {
-                JOptionPane.showMessageDialog(this, "Unable to add assignment: " + ex.getMessage(),
-                        "Error", JOptionPane.ERROR_MESSAGE);
+            if (courseId > 00 & !selectionMode) {
+                startEnrollmentEdit();
             }
             return;
         }
@@ -514,17 +505,9 @@ public class MainPage extends javax.swing.JFrame {
             return;
         }
         if (studentGradesModel != null) {
-            int col = jTable.getSelectedColumn();
-            if (col > 0) {
-                Assignment a = studentGradesModel.getAssignmentAt(col - 1);
-                AssignmentDAO dao = new UcanaccessAssignmentDAO();
-                try {
-                    dao.delete(a.getAssignmentId());
-                    studentGradesModel.removeAssignment(col - 1);
-                } catch (Exception ex) {
-                    JOptionPane.showMessageDialog(this, "Unable to delete assignment: " + ex.getMessage(),
-                            "Error", JOptionPane.ERROR_MESSAGE);
-                }
+            int courseId = getSelectedCourseId();
+            if (courseId > 0 && !selectionMode) {
+                startEnrollmentEdit();
             }
             return;
         }
@@ -835,6 +818,13 @@ private void loadCourses() {
         if (sel instanceof Integer g) {
             return g;
         }
+        if (sel instanceof String s && s.startsWith("Grade ")) {
+            try {
+                return Integer.parseInt(s.substring(6));
+            } catch (NumberFormatException ex) {
+                return 0;
+            }
+        }
         return 0;
     }
     
@@ -959,7 +949,7 @@ private void loadCourses() {
             jComboBox.removeAllItems();
             for (Integer g : grades) {
                 if (g >= 10 && g <= 12) {
-                    jComboBox.addItem(g);
+                    jComboBox.addItem("Grade " + g);
                 }
             }
             if (jComboBox.getItemCount() > 0) {

@@ -5,16 +5,25 @@ import java.awt.Component;
 import java.awt.Font;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import javax.swing.JOptionPane;
 import javax.swing.JTable;
 import javax.swing.RowSorter;
 import javax.swing.SortOrder;
 import javax.swing.table.TableRowSorter;
+import sgms.dao.AssignmentDAO;
+import sgms.dao.FinalGradeDAO;
+import sgms.dao.GradeDAO;
 import sgms.dao.StudentDAO;
+import sgms.dao.impl.UcanaccessAssignmentDAO;
+import sgms.dao.impl.UcanaccessFinalGradeDAO;
+import sgms.dao.impl.UcanaccessGradeDAO;
 import sgms.dao.impl.UcanaccessStudentDAO;
-import sgms.model.Student;
+import sgms.model.Assignment;
 import sgms.model.Course;
+import sgms.model.FinalGrade;
+import sgms.model.Student;
 import sgms.util.SearchUtil;
 
 /**
@@ -27,6 +36,8 @@ public class MainPage extends javax.swing.JFrame {
     private final StudentDAO studentDAO = new UcanaccessStudentDAO();
     private StudentTableModel studentTableModel;
     private StudentSelectionTableModel studentSelectionModel;
+    private StudentGradesTableModel studentGradesModel;
+    private FinalGradesTableModel finalGradesModel;
     private boolean selectionMode = false;
     /**
      * Creates new form MainFrame
@@ -149,6 +160,11 @@ public class MainPage extends javax.swing.JFrame {
         jPanel2.add(jLabelWelcomeName, new org.netbeans.lib.awtextra.AbsoluteConstraints(6, 6, 217, 65));
 
         jButtonViewFinalGrades.setText("View Final Grades");
+        jButtonViewFinalGrades.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButtonViewFinalGradesActionPerformed(evt);
+            }
+        });
         jPanel2.add(jButtonViewFinalGrades, new org.netbeans.lib.awtextra.AbsoluteConstraints(75, 211, 150, 36));
 
         jButtonViewStudents.setText("View Students");
@@ -185,6 +201,11 @@ public class MainPage extends javax.swing.JFrame {
         jPanel2.add(jButtonCreateReportCard, new org.netbeans.lib.awtextra.AbsoluteConstraints(75, 531, 150, 36));
 
         jButtonAttendance.setText("Attendance");
+        jButtonAttendance.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButtonAttendanceActionPerformed(evt);
+            }
+        });
         jPanel2.add(jButtonAttendance, new org.netbeans.lib.awtextra.AbsoluteConstraints(75, 275, 150, 36));
 
         iconViewStudents.setIcon(new javax.swing.ImageIcon(getClass().getResource("/sgms/data/icons/view students.png"))); // NOI18N
@@ -394,7 +415,17 @@ public class MainPage extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
     private void jButtonViewStudentGradesActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonViewStudentGradesActionPerformed
-        // TODO add your handling code here:
+        loadCoursesForGrades();
+        jComboBox.setEnabled(true);
+        jButtonAdd.setEnabled(false);
+        jButtonDelete.setEnabled(false);
+        jButtonSave.setEnabled(false);
+        jButtonEdit.setEnabled(false);
+        studentTableModel = null;
+        finalGradesModel = null;
+        studentSelectionModel = null;
+        selectionMode = false;
+        loadStudentGradesForSelectedCourse();
     }//GEN-LAST:event_jButtonViewStudentGradesActionPerformed
 
     private void jButtonManageCoursesActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonManageCoursesActionPerformed
@@ -402,14 +433,39 @@ public class MainPage extends javax.swing.JFrame {
     }//GEN-LAST:event_jButtonManageCoursesActionPerformed
 
     private void jButtonViewStudentsActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonViewStudentsActionPerformed
-        if (!jComboBox.isEnabled()) {
-            loadCourses();
-            jComboBox.setEnabled(true);
-        }
+        loadCourses();
+        jComboBox.setEnabled(true);
+        jButtonAdd.setEnabled(true);
+        jButtonDelete.setEnabled(true);
+        jButtonSave.setEnabled(true);
+        jButtonEdit.setEnabled(true);
+        studentGradesModel = null;
+        finalGradesModel = null;
+        selectionMode = false;
+        studentSelectionModel = null;
         loadStudentsForSelectedCourse();
     }//GEN-LAST:event_jButtonViewStudentsActionPerformed
 
     private void jButtonAddActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonAddActionPerformed
+        if (finalGradesModel != null) {
+            return;
+        }
+        if (studentGradesModel != null) {
+            int courseId = getSelectedCourseId();
+            String title = JOptionPane.showInputDialog(this, "Assignment title:");
+            if (title == null || title.trim().isEmpty()) {
+                return;
+            }
+            AssignmentDAO dao = new UcanaccessAssignmentDAO();
+            try {
+                Assignment a = dao.add(new Assignment(courseId, title.trim()));
+                studentGradesModel.addAssignment(a);
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, "Unable to add assignment: " + ex.getMessage(),
+                        "Error", JOptionPane.ERROR_MESSAGE);
+            }
+            return;
+        }
         int courseId = getSelectedCourseId();
         if (courseId > 0) {
             if (!selectionMode) {
@@ -440,6 +496,24 @@ public class MainPage extends javax.swing.JFrame {
     }//GEN-LAST:event_jButtonAddActionPerformed
 
     private void jButtonDeleteActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonDeleteActionPerformed
+        if (finalGradesModel != null) {
+            return;
+        }
+        if (studentGradesModel != null) {
+            int col = jTable.getSelectedColumn();
+            if (col > 0) {
+                Assignment a = studentGradesModel.getAssignmentAt(col - 1);
+                AssignmentDAO dao = new UcanaccessAssignmentDAO();
+                try {
+                    dao.delete(a.getAssignmentId());
+                    studentGradesModel.removeAssignment(col - 1);
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(this, "Unable to delete assignment: " + ex.getMessage(),
+                            "Error", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+            return;
+        }
         if (studentTableModel == null) {
             return;
         }
@@ -469,6 +543,10 @@ public class MainPage extends javax.swing.JFrame {
     private void jComboBoxActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jComboBoxActionPerformed
         if (studentTableModel != null) {
             loadStudentsForSelectedCourse();
+            } else if (studentGradesModel != null) {
+            loadStudentGradesForSelectedCourse();
+        } else if (finalGradesModel != null) {
+            loadFinalGradesForSelectedGrade();
         }
     }//GEN-LAST:event_jComboBoxActionPerformed
 
@@ -557,6 +635,17 @@ public class MainPage extends javax.swing.JFrame {
     }//GEN-LAST:event_jButtonSaveActionPerformed
 
     private void jButtonEditActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonEditActionPerformed
+        if (finalGradesModel != null) {
+            return;
+        }
+        if (studentGradesModel != null) {
+            int row = jTable.getSelectedRow();
+            int col = jTable.getSelectedColumn();
+            if (row >= 0 && col > 0) {
+                jTable.editCellAt(row, col);
+            }
+            return;
+        }
         if (studentTableModel == null) {
             return;
         }
@@ -577,6 +666,24 @@ public class MainPage extends javax.swing.JFrame {
     private void jButtonSearchActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonSearchActionPerformed
         // TODO add your handling code here:
     }//GEN-LAST:event_jButtonSearchActionPerformed
+
+    private void jButtonViewFinalGradesActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonViewFinalGradesActionPerformed
+        loadGradeLevelsForFinalGrades();
+        jComboBox.setEnabled(true);
+        jButtonAdd.setEnabled(false);
+        jButtonDelete.setEnabled(false);
+        jButtonSave.setEnabled(false);
+        jButtonEdit.setEnabled(false);
+        studentTableModel = null;
+        studentGradesModel = null;
+        studentSelectionModel = null;
+        selectionMode = false;
+        loadFinalGradesForSelectedGrade();
+    }//GEN-LAST:event_jButtonViewFinalGradesActionPerformed
+
+    private void jButtonAttendanceActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonAttendanceActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_jButtonAttendanceActionPerformed
 
     /**
      * @param args the command line arguments
@@ -638,7 +745,7 @@ public class MainPage extends javax.swing.JFrame {
     private javax.swing.JButton jButtonViewFinalGrades;
     private javax.swing.JButton jButtonViewStudentGrades;
     private javax.swing.JButton jButtonViewStudents;
-    private javax.swing.JComboBox<Course> jComboBox;
+    private javax.swing.JComboBox<Object> jComboBox;
     private javax.swing.JLabel jLabelMadeByJacquesSmit;
     private javax.swing.JLabel jLabelSGMS;
     private javax.swing.JLabel jLabelWelcomeName;
@@ -675,6 +782,14 @@ private void loadCourses() {
         return 0;
     }
 
+    private int getSelectedGradeLevel() {
+        Object sel = jComboBox.getSelectedItem();
+        if (sel instanceof Integer g) {
+            return g;
+        }
+        return 0;
+    }
+    
     private void loadStudentsForSelectedCourse() {
         try {
             int courseId = getSelectedCourseId();
@@ -723,5 +838,89 @@ private void loadCourses() {
                     "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
-    
+  private void loadStudentGradesForSelectedCourse() {
+        try {
+            int courseId = getSelectedCourseId();
+            if (courseId <= 0) {
+                return;
+            }
+            AssignmentDAO assignmentDAO = new UcanaccessAssignmentDAO();
+            GradeDAO gradeDAO = new UcanaccessGradeDAO();
+            List<Student> students = studentDAO.findByCourse(courseId);
+            List<Assignment> assignments = assignmentDAO.findByCourse(courseId);
+            Map<Integer, Map<Integer, Integer>> grades = gradeDAO.findByCourse(courseId);
+            studentGradesModel = new StudentGradesTableModel(students, assignments, grades, gradeDAO);
+            finalGradesModel = null;
+            studentTableModel = null;
+            selectionMode = false;
+            studentSelectionModel = null;
+            jTable.setModel(studentGradesModel);
+            jTable.setAutoCreateRowSorter(true);
+            TableRowSorter<?> sorter = (TableRowSorter<?>) jTable.getRowSorter();
+            sorter.setSortKeys(List.of(new RowSorter.SortKey(0, SortOrder.ASCENDING)));
+            SearchUtil.applyFilter(jTable, jTextFieldSearch.getText());
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, "Unable to load grades: " + ex.getMessage(),
+                    "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void loadFinalGradesForSelectedGrade() {
+        try {
+            int grade = getSelectedGradeLevel();
+            if (grade <= 0) {
+                return;
+            }
+            FinalGradeDAO dao = new UcanaccessFinalGradeDAO();
+            List<FinalGrade> list = dao.findByGradeLevel(grade);
+            finalGradesModel = new FinalGradesTableModel(list);
+            studentGradesModel = null;
+            studentTableModel = null;
+            selectionMode = false;
+            studentSelectionModel = null;
+            jTable.setModel(finalGradesModel);
+            jTable.setAutoCreateRowSorter(true);
+            TableRowSorter<?> sorter = (TableRowSorter<?>) jTable.getRowSorter();
+            sorter.setSortKeys(List.of(new RowSorter.SortKey(1, SortOrder.ASCENDING)));
+            SearchUtil.applyFilter(jTable, jTextFieldSearch.getText());
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, "Unable to load final grades: " + ex.getMessage(),
+                    "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void loadCoursesForGrades() {
+        try {
+            List<Course> courses = studentDAO.findCourses();
+            jComboBox.removeAllItems();
+            for (Course c : courses) {
+                jComboBox.addItem(c);
+            }
+            if (jComboBox.getItemCount() > 0) {
+                jComboBox.setSelectedIndex(0);
+            }
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, "Unable to load courses: " + ex.getMessage(),
+                    "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void loadGradeLevelsForFinalGrades() {
+        try {
+            List<Integer> grades = studentDAO.findGradeLevels();
+            jComboBox.removeAllItems();
+            for (Integer g : grades) {
+                if (g >= 10 && g <= 12) {
+                    jComboBox.addItem(g);
+                }
+            }
+            if (jComboBox.getItemCount() > 0) {
+                jComboBox.setSelectedIndex(0);
+            }
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, "Unable to load grade levels: " + ex.getMessage(),
+                    "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+  
 }

@@ -87,7 +87,20 @@ public class DBSetup {
                 )
             """);
 
-            // 6 ───────── ATTENDANCE ──────────────────────────────────────────
+             // 6 ───────── FINAL GRADES ────────────────────────────────────────
+            s.executeUpdate("""
+                CREATE TABLE tblFinalGrades (
+                    studentId  INTEGER PRIMARY KEY,
+                    term1      INTEGER,
+                    term2      INTEGER,
+                    term3      INTEGER,
+                    term4      INTEGER,
+                    finalGrade INTEGER,
+                    FOREIGN KEY (studentId) REFERENCES tblStudents(studentId)
+                )
+            """);
+
+            // 7 ───────── ATTENDANCE ──────────────────────────────────────────
             s.executeUpdate("""
                 CREATE TABLE tblAttendance (
                     studentId   INTEGER NOT NULL,
@@ -100,7 +113,7 @@ public class DBSetup {
                 )
             """);
 
-            // 7 ───────── FEEDBACK ────────────────────────────────────────────
+            // 8 ───────── FEEDBACK ────────────────────────────────────────────
             s.executeUpdate("""
                 CREATE TABLE tblFeedback (
                     feedbackId  AUTOINCREMENT PRIMARY KEY,

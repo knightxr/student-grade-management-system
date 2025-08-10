@@ -434,6 +434,8 @@ public class MainPage extends javax.swing.JFrame {
         studentTableModel = null;
         finalGradesModel = null;
         studentSelectionModel = null;
+        attendanceModel = null;
+        attendanceTodayColumn = -1;
         selectionMode = false;
         loadStudentGradesForSelectedCourse();
     }//GEN-LAST:event_jButtonViewStudentGradesActionPerformed
@@ -451,6 +453,8 @@ public class MainPage extends javax.swing.JFrame {
         jButtonEdit.setEnabled(true);
         studentGradesModel = null;
         finalGradesModel = null;
+        attendanceModel = null;
+        attendanceTodayColumn = -1;
         selectionMode = false;
         studentSelectionModel = null;
         loadStudentsForSelectedCourse();
@@ -592,23 +596,6 @@ public class MainPage extends javax.swing.JFrame {
     }//GEN-LAST:event_jTextFieldSearchFocusLost
 
     private void jButtonSaveActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonSaveActionPerformed
-        if (attendanceModel != null) {
-            try {
-                AttendanceDAO dao = new UcanaccessAttendanceDAO();
-                int courseId = getSelectedCourseId();
-                for (Map.Entry<Integer, Map<LocalDate, Boolean>> e : attendanceModel.getChanges().entrySet()) {
-                    int studentId = e.getKey();
-                    for (Map.Entry<LocalDate, Boolean> att : e.getValue().entrySet()) {
-                        dao.upsert(studentId, courseId, att.getKey(), att.getValue());
-                    }
-                }
-                attendanceModel.clearChanges();
-            } catch (Exception ex) {
-                JOptionPane.showMessageDialog(this, "Unable to save attendance: " + ex.getMessage(),
-                        "Error", JOptionPane.ERROR_MESSAGE);
-            }
-            return;
-        }
         if (selectionMode && studentSelectionModel != null) {
             try {
                 int courseId = getSelectedCourseId();
@@ -626,9 +613,28 @@ public class MainPage extends javax.swing.JFrame {
                 }
                 selectionMode = false;
                 studentSelectionModel = null;
+                attendanceModel = null;
+                attendanceTodayColumn = -1;
                 loadStudentsForSelectedCourse();
             } catch (Exception ex) {
                 JOptionPane.showMessageDialog(this, "Unable to update enrollments: " + ex.getMessage(),
+                        "Error", JOptionPane.ERROR_MESSAGE);
+            }
+            return;
+        }
+        if (attendanceModel != null) {
+            try {
+                AttendanceDAO dao = new UcanaccessAttendanceDAO();
+                int courseId = getSelectedCourseId();
+                for (Map.Entry<Integer, Map<LocalDate, Boolean>> e : attendanceModel.getChanges().entrySet()) {
+                    int studentId = e.getKey();
+                    for (Map.Entry<LocalDate, Boolean> att : e.getValue().entrySet()) {
+                        dao.upsert(studentId, courseId, att.getKey(), att.getValue());
+                    }
+                }
+                attendanceModel.clearChanges();
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, "Unable to save attendance: " + ex.getMessage(),
                         "Error", JOptionPane.ERROR_MESSAGE);
             }
             return;
@@ -706,6 +712,8 @@ public class MainPage extends javax.swing.JFrame {
         studentTableModel = null;
         studentGradesModel = null;
         studentSelectionModel = null;
+        attendanceModel = null;
+        attendanceTodayColumn = -1;
         selectionMode = false;
         loadFinalGradesForSelectedGrade();
     }//GEN-LAST:event_jButtonViewFinalGradesActionPerformed

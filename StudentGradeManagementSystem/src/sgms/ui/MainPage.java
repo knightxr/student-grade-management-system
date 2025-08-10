@@ -15,6 +15,7 @@ import sgms.dao.StudentDAO;
 import sgms.dao.impl.UcanaccessStudentDAO;
 import sgms.model.Student;
 import sgms.model.Course;
+import sgms.util.SearchUtil;
 
 /**
  * 
@@ -61,6 +62,7 @@ public class MainPage extends javax.swing.JFrame {
         jTextFieldSearch.setForeground(Color.GRAY);
         jButtonSave.addActionListener(this::jButtonSaveActionPerformed);
         jButtonEdit.addActionListener(this::jButtonEditActionPerformed);
+        SearchUtil.installSearch(jTable, jTextFieldSearch, jButtonSearch);
         jComboBox.setEnabled(false);
         jComboBox.removeAllItems();
     }
@@ -280,6 +282,11 @@ public class MainPage extends javax.swing.JFrame {
         jButtonSearch.setText("⌕");
         jButtonSearch.setActionCommand("");
         jButtonSearch.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
+        jButtonSearch.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButtonSearchActionPerformed(evt);
+            }
+        });
         jPanel4.add(jButtonSearch, new org.netbeans.lib.awtextra.AbsoluteConstraints(639, 10, 28, 28));
 
         jTable.setBackground(new java.awt.Color(255, 255, 255));
@@ -567,6 +574,10 @@ public class MainPage extends javax.swing.JFrame {
         }
     }//GEN-LAST:event_jButtonEditActionPerformed
 
+    private void jButtonSearchActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonSearchActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_jButtonSearchActionPerformed
+
     /**
      * @param args the command line arguments
      */
@@ -676,6 +687,7 @@ private void loadCourses() {
             sorter.setSortKeys(List.of(new RowSorter.SortKey(2, SortOrder.ASCENDING)));
             selectionMode = false;
             studentSelectionModel = null;
+            SearchUtil.applyFilter(jTable, jTextFieldSearch.getText());
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this, "Unable to load students: " + ex.getMessage(),
                     "Error", JOptionPane.ERROR_MESSAGE);
@@ -705,6 +717,7 @@ private void loadCourses() {
                     new RowSorter.SortKey(3, SortOrder.ASCENDING),
                     new RowSorter.SortKey(2, SortOrder.ASCENDING)));
             selectionMode = true;
+            SearchUtil.applyFilter(jTable, jTextFieldSearch.getText());
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this, "Unable to load students: " + ex.getMessage(),
                     "Error", JOptionPane.ERROR_MESSAGE);

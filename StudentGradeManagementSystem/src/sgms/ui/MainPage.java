@@ -3,6 +3,9 @@ package sgms.ui;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Font;
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.temporal.TemporalAdjusters;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -16,10 +19,12 @@ import sgms.dao.AssignmentDAO;
 import sgms.dao.FinalGradeDAO;
 import sgms.dao.GradeDAO;
 import sgms.dao.StudentDAO;
+import sgms.dao.AttendanceDAO;
 import sgms.dao.impl.UcanaccessAssignmentDAO;
 import sgms.dao.impl.UcanaccessFinalGradeDAO;
 import sgms.dao.impl.UcanaccessGradeDAO;
 import sgms.dao.impl.UcanaccessStudentDAO;
+import sgms.dao.impl.UcanaccessAttendanceDAO;
 import sgms.model.Assignment;
 import sgms.model.Course;
 import sgms.model.FinalGrade;
@@ -38,7 +43,9 @@ public class MainPage extends javax.swing.JFrame {
     private StudentSelectionTableModel studentSelectionModel;
     private StudentGradesTableModel studentGradesModel;
     private FinalGradesTableModel finalGradesModel;
+    private AttendanceTableModel attendanceModel;
     private boolean selectionMode = false;
+    private int attendanceTodayColumn = -1;
     /**
      * Creates new form MainFrame
      */
@@ -60,6 +67,9 @@ public class MainPage extends javax.swing.JFrame {
                     }
                 } else {
                     Color base = (row % 2 == 0) ? Color.WHITE : new Color(245, 245, 245);
+                    if (attendanceModel != null && column == attendanceTodayColumn) {
+                        base = new Color(255, 255, 200);
+                    }
                     c.setBackground(isRowSelected(row) ? getSelectionBackground() : base);
                 }
                 return c;
@@ -547,6 +557,8 @@ public class MainPage extends javax.swing.JFrame {
             loadStudentGradesForSelectedCourse();
         } else if (finalGradesModel != null) {
             loadFinalGradesForSelectedGrade();
+        } else if (attendanceModel != null) {
+            loadAttendanceForSelectedCourse();
         }
     }//GEN-LAST:event_jComboBoxActionPerformed
 
@@ -580,6 +592,23 @@ public class MainPage extends javax.swing.JFrame {
     }//GEN-LAST:event_jTextFieldSearchFocusLost
 
     private void jButtonSaveActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonSaveActionPerformed
+        if (attendanceModel != null) {
+            try {
+                AttendanceDAO dao = new UcanaccessAttendanceDAO();
+                int courseId = getSelectedCourseId();
+                for (Map.Entry<Integer, Map<LocalDate, Boolean>> e : attendanceModel.getChanges().entrySet()) {
+                    int studentId = e.getKey();
+                    for (Map.Entry<LocalDate, Boolean> att : e.getValue().entrySet()) {
+                        dao.upsert(studentId, courseId, att.getKey(), att.getValue());
+                    }
+                }
+                attendanceModel.clearChanges();
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, "Unable to save attendance: " + ex.getMessage(),
+                        "Error", JOptionPane.ERROR_MESSAGE);
+            }
+            return;
+        }
         if (selectionMode && studentSelectionModel != null) {
             try {
                 int courseId = getSelectedCourseId();
@@ -682,7 +711,18 @@ public class MainPage extends javax.swing.JFrame {
     }//GEN-LAST:event_jButtonViewFinalGradesActionPerformed
 
     private void jButtonAttendanceActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonAttendanceActionPerformed
-        // TODO add your handling code here:
+         loadCoursesForAttendance();
+        jComboBox.setEnabled(true);
+        jButtonAdd.setEnabled(false);
+        jButtonDelete.setEnabled(false);
+        jButtonEdit.setEnabled(false);
+        jButtonSave.setEnabled(true);
+        studentTableModel = null;
+        studentSelectionModel = null;
+        studentGradesModel = null;
+        finalGradesModel = null;
+        selectionMode = false;
+        loadAttendanceForSelectedCourse();
     }//GEN-LAST:event_jButtonAttendanceActionPerformed
 
     /**
@@ -923,4 +963,52 @@ private void loadCourses() {
         }
     }
   
+    private void loadCoursesForAttendance() {
+        try {
+            List<Course> courses = studentDAO.findCourses();
+            jComboBox.removeAllItems();
+            for (Course c : courses) {
+                jComboBox.addItem(c);
+            }
+            if (jComboBox.getItemCount() > 0) {
+                jComboBox.setSelectedIndex(0);
+            }
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, "Unable to load courses: " + ex.getMessage(),
+                    "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void loadAttendanceForSelectedCourse() {
+        try {
+            int courseId = getSelectedCourseId();
+            if (courseId <= 0) {
+                return;
+            }
+            List<Student> students = studentDAO.findByCourse(courseId);
+            LocalDate today = LocalDate.now();
+            LocalDate start = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+            LocalDate end = start.plusDays(4);
+            AttendanceDAO dao = new UcanaccessAttendanceDAO();
+            Map<Integer, Map<LocalDate, Boolean>> data = dao.findByCourseAndDateRange(courseId, start, end);
+            attendanceModel = new AttendanceTableModel(students, start, data);
+            studentTableModel = null;
+            studentSelectionModel = null;
+            studentGradesModel = null;
+            finalGradesModel = null;
+            jTable.setModel(attendanceModel);
+            jTable.setAutoCreateRowSorter(true);
+            TableRowSorter<?> sorter = (TableRowSorter<?>) jTable.getRowSorter();
+            sorter.setSortKeys(List.of(new RowSorter.SortKey(0, SortOrder.ASCENDING)));
+            selectionMode = false;
+            attendanceTodayColumn = today.getDayOfWeek().getValue();
+            if (attendanceTodayColumn < 1 || attendanceTodayColumn > 5) {
+                attendanceTodayColumn = -1;
+            }
+            SearchUtil.applyFilter(jTable, jTextFieldSearch.getText());
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, "Unable to load attendance: " + ex.getMessage(),
+                    "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
 }

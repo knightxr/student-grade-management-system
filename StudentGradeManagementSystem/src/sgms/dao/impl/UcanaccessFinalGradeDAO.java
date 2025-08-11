@@ -16,8 +16,8 @@ public class UcanaccessFinalGradeDAO implements FinalGradeDAO {
     public List<FinalGrade> findByGradeLevel(int gradeLevel) throws SQLException {
         final String sql = """
             SELECT s.firstName, s.lastName, f.term1, f.term2, f.term3, f.term4, f.finalGrade
-            FROM tblFinalGrades f
-            JOIN tblStudents s ON f.studentId = s.studentId
+            FROM tblStudents s
+            LEFT JOIN tblFinalGrades f ON f.studentId = s.studentId
             WHERE s.gradeLevel = ?
             ORDER BY s.lastName
         """;

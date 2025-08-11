@@ -21,11 +21,13 @@ import sgms.dao.FinalGradeDAO;
 import sgms.dao.GradeDAO;
 import sgms.dao.StudentDAO;
 import sgms.dao.AttendanceDAO;
+import sgms.dao.FeedbackDAO;
 import sgms.dao.impl.UcanaccessAssignmentDAO;
 import sgms.dao.impl.UcanaccessFinalGradeDAO;
 import sgms.dao.impl.UcanaccessGradeDAO;
 import sgms.dao.impl.UcanaccessStudentDAO;
 import sgms.dao.impl.UcanaccessAttendanceDAO;
+import sgms.dao.impl.UcanaccessFeedbackDAO;
 import sgms.model.Assignment;
 import sgms.model.Course;
 import sgms.model.FinalGrade;
@@ -45,8 +47,10 @@ public class MainPage extends javax.swing.JFrame {
     private StudentGradesTableModel studentGradesModel;
     private FinalGradesTableModel finalGradesModel;
     private AttendanceTableModel attendanceModel;
+    private StudentFeedbackTableModel feedbackModel;
     private boolean selectionMode = false;
     private int attendanceTodayColumn = -1;
+    private final FeedbackDAO feedbackDAO = new UcanaccessFeedbackDAO();
     
     private void setActiveButton(javax.swing.JButton active) {
         Color defaultColor = Color.WHITE;
@@ -55,7 +59,8 @@ public class MainPage extends javax.swing.JFrame {
             jButtonViewStudents,
             jButtonViewStudentGrades,
             jButtonViewFinalGrades,
-            jButtonAttendance
+            jButtonAttendance,
+            jButtonStudentFeedback
         };
         for (javax.swing.JButton b : buttons) {
             if (b != null) {
@@ -106,6 +111,23 @@ public class MainPage extends javax.swing.JFrame {
         jComboBox.setEnabled(false);
         jComboBox.removeAllItems();
         setActiveButton(null);
+        
+        jTable.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                if (feedbackModel != null) {
+                    int row = jTable.rowAtPoint(evt.getPoint());
+                    int col = jTable.columnAtPoint(evt.getPoint());
+                    if (row >= 0 && col == 2) {
+                        int modelRow = jTable.convertRowIndexToModel(row);
+                        String full = feedbackModel.getFullComment(modelRow);
+                        if (full != null && !full.isEmpty()) {
+                            JOptionPane.showMessageDialog(MainPage.this, full, "Comment", JOptionPane.INFORMATION_MESSAGE);
+                        }
+                    }
+                }
+            }
+        });
     }
 
     /**
@@ -225,6 +247,11 @@ public class MainPage extends javax.swing.JFrame {
         jPanel2.add(jButtonManageAssignments, new org.netbeans.lib.awtextra.AbsoluteConstraints(75, 403, 150, 36));
 
         jButtonStudentFeedback.setText("Student Feedback");
+        jButtonStudentFeedback.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButtonStudentFeedbackActionPerformed(evt);
+            }
+        });
         jPanel2.add(jButtonStudentFeedback, new org.netbeans.lib.awtextra.AbsoluteConstraints(75, 467, 150, 36));
 
         jButtonCreateReportCard.setText("Create Report Card");
@@ -486,6 +513,26 @@ public class MainPage extends javax.swing.JFrame {
         if (finalGradesModel != null) {
             return;
         }
+        if (feedbackModel != null) {
+            int row = jTable.getSelectedRow();
+            if (row < 0) {
+                JOptionPane.showMessageDialog(this, "Select a student first.");
+                return;
+            }
+            int modelRow = jTable.convertRowIndexToModel(row);
+            Student s = feedbackModel.getStudent(modelRow);
+            String comment = JOptionPane.showInputDialog(this, "Enter comment for " + s.getFirstName() + " " + s.getLastName() + ":");
+            if (comment != null) {
+                try {
+                    feedbackDAO.upsert(s.getStudentId(), getSelectedCourseId(), comment);
+                    loadFeedbackForSelectedCourse();
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(this, "Unable to add feedback: " + ex.getMessage(),
+                            "Error", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+            return;
+        }
         if (studentGradesModel != null) {
             int courseId = getSelectedCourseId();
             if (courseId > 00 & !selectionMode) {
@@ -526,6 +573,26 @@ public class MainPage extends javax.swing.JFrame {
         if (finalGradesModel != null) {
             return;
         }
+        if (feedbackModel != null) {
+            int row = jTable.getSelectedRow();
+            if (row >= 0) {
+                int modelRow = jTable.convertRowIndexToModel(row);
+                Student s = feedbackModel.getStudent(modelRow);
+                int confirm = JOptionPane.showConfirmDialog(this,
+                        "Delete comment for " + s.getFirstName() + " " + s.getLastName() + "?",
+                        "Confirm", JOptionPane.YES_NO_OPTION);
+                if (confirm == JOptionPane.YES_OPTION) {
+                    try {
+                        feedbackDAO.delete(s.getStudentId(), getSelectedCourseId());
+                        loadFeedbackForSelectedCourse();
+                    } catch (Exception ex) {
+                        JOptionPane.showMessageDialog(this, "Unable to delete feedback: " + ex.getMessage(),
+                                "Error", JOptionPane.ERROR_MESSAGE);
+                    }
+                }
+            }
+            return;
+        }
         if (studentGradesModel != null) {
             int courseId = getSelectedCourseId();
             if (courseId > 0 && !selectionMode) {
@@ -562,12 +629,14 @@ public class MainPage extends javax.swing.JFrame {
     private void jComboBoxActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jComboBoxActionPerformed
         if (studentTableModel != null) {
             loadStudentsForSelectedCourse();
-            } else if (studentGradesModel != null) {
+        } else if (studentGradesModel != null) {
             loadStudentGradesForSelectedCourse();
         } else if (finalGradesModel != null) {
             loadFinalGradesForSelectedGrade();
         } else if (attendanceModel != null) {
             loadAttendanceForSelectedCourse();
+        } else if (feedbackModel != null) {
+            loadFeedbackForSelectedCourse();
         }
     }//GEN-LAST:event_jComboBoxActionPerformed
 
@@ -645,6 +714,25 @@ public class MainPage extends javax.swing.JFrame {
             }
             return;
         }
+         if (feedbackModel != null) {
+            try {
+                int courseId = getSelectedCourseId();
+                for (Map.Entry<Integer, String> e : feedbackModel.getComments().entrySet()) {
+                    int studentId = e.getKey();
+                    String note = e.getValue();
+                    if (note == null || note.trim().isEmpty()) {
+                        feedbackDAO.delete(studentId, courseId);
+                    } else {
+                        feedbackDAO.upsert(studentId, courseId, note);
+                    }
+                }
+                loadFeedbackForSelectedCourse();
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, "Unable to save feedback: " + ex.getMessage(),
+                        "Error", JOptionPane.ERROR_MESSAGE);
+            }
+            return;
+        }
         if (studentTableModel == null) {
             return;
         }
@@ -677,6 +765,18 @@ public class MainPage extends javax.swing.JFrame {
 
     private void jButtonEditActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonEditActionPerformed
         if (finalGradesModel != null) {
+            return;
+        }
+         if (feedbackModel != null) {
+            if (jTable.getRowCount() > 0) {
+                jTable.changeSelection(0, 2, false, false);
+                jTable.editCellAt(0, 2);
+                Component editor = jTable.getEditorComponent();
+                if (editor instanceof JTextComponent tc) {
+                    tc.requestFocusInWindow();
+                    tc.selectAll();
+                }
+            }
             return;
         }
         if (studentGradesModel != null) {
@@ -744,6 +844,23 @@ public class MainPage extends javax.swing.JFrame {
         selectionMode = false;
         loadAttendanceForSelectedCourse();
     }//GEN-LAST:event_jButtonAttendanceActionPerformed
+
+    private void jButtonStudentFeedbackActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonStudentFeedbackActionPerformed
+        setActiveButton(jButtonStudentFeedback);
+        loadCoursesForFeedback();
+        jComboBox.setEnabled(true);
+        jButtonAdd.setEnabled(true);
+        jButtonDelete.setEnabled(true);
+        jButtonEdit.setEnabled(true);
+        jButtonSave.setEnabled(true);
+        studentTableModel = null;
+        studentSelectionModel = null;
+        studentGradesModel = null;
+        finalGradesModel = null;
+        attendanceModel = null;
+        selectionMode = false;
+        loadFeedbackForSelectedCourse();
+    }//GEN-LAST:event_jButtonStudentFeedbackActionPerformed
 
     /**
      * @param args the command line arguments
@@ -979,7 +1096,7 @@ private void loadCourses() {
             List<Integer> grades = studentDAO.findGradeLevels();
             jComboBox.removeAllItems();
             for (Integer g : grades) {
-                jComboBox.addItem(g);
+                jComboBox.addItem("Grade " + g);
             }
             if (jComboBox.getItemCount() > 0) {
                 jComboBox.setSelectedIndex(0);
@@ -1035,6 +1152,47 @@ private void loadCourses() {
             SearchUtil.applyFilter(jTable, jTextFieldSearch.getText());
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this, "Unable to load attendance: " + ex.getMessage(),
+                    "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+    
+    private void loadCoursesForFeedback() {
+        try {
+            List<Course> courses = studentDAO.findCourses();
+            jComboBox.removeAllItems();
+            for (Course c : courses) {
+                jComboBox.addItem(c);
+            }
+            if (jComboBox.getItemCount() > 0) {
+                jComboBox.setSelectedIndex(0);
+            }
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, "Unable to load courses: " + ex.getMessage(),
+                    "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void loadFeedbackForSelectedCourse() {
+        try {
+            int courseId = getSelectedCourseId();
+            if (courseId <= 0) {
+                return;
+            }
+            List<Student> students = studentDAO.findByCourse(courseId);
+            Map<Integer, String> notes = feedbackDAO.findByCourse(courseId);
+            feedbackModel = new StudentFeedbackTableModel(students, notes);
+            studentTableModel = null;
+            studentSelectionModel = null;
+            studentGradesModel = null;
+            finalGradesModel = null;
+            attendanceModel = null;
+            jTable.setModel(feedbackModel);
+            jTable.setAutoCreateRowSorter(true);
+            TableRowSorter<?> sorter = (TableRowSorter<?>) jTable.getRowSorter();
+            sorter.setSortKeys(List.of(new RowSorter.SortKey(1, SortOrder.ASCENDING)));
+            SearchUtil.applyFilter(jTable, jTextFieldSearch.getText());
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, "Unable to load feedback: " + ex.getMessage(),
                     "Error", JOptionPane.ERROR_MESSAGE);
         }
     }

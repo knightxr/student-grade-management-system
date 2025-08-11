@@ -15,6 +15,7 @@ import javax.swing.JTable;
 import javax.swing.RowSorter;
 import javax.swing.SortOrder;
 import javax.swing.table.TableRowSorter;
+import javax.swing.text.JTextComponent;
 import sgms.dao.AssignmentDAO;
 import sgms.dao.FinalGradeDAO;
 import sgms.dao.GradeDAO;
@@ -46,6 +47,24 @@ public class MainPage extends javax.swing.JFrame {
     private AttendanceTableModel attendanceModel;
     private boolean selectionMode = false;
     private int attendanceTodayColumn = -1;
+    
+    private void setActiveButton(javax.swing.JButton active) {
+        Color defaultColor = Color.WHITE;
+        Color activeColor = new Color(0, 102, 204);
+        javax.swing.JButton[] buttons = {
+            jButtonViewStudents,
+            jButtonViewStudentGrades,
+            jButtonViewFinalGrades,
+            jButtonAttendance
+        };
+        for (javax.swing.JButton b : buttons) {
+            if (b != null) {
+                b.setBackground(b == active ? activeColor : defaultColor);
+                b.setOpaque(true);
+                b.setBorderPainted(false);
+            }
+        }
+    }
     /**
      * Creates new form MainFrame
      */
@@ -86,6 +105,7 @@ public class MainPage extends javax.swing.JFrame {
         SearchUtil.installSearch(jTable, jTextFieldSearch, jButtonSearch);
         jComboBox.setEnabled(false);
         jComboBox.removeAllItems();
+        setActiveButton(null);
     }
 
     /**
@@ -425,6 +445,7 @@ public class MainPage extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
     private void jButtonViewStudentGradesActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonViewStudentGradesActionPerformed
+        setActiveButton(jButtonViewStudentGrades);
         loadCoursesForGrades();
         jComboBox.setEnabled(true);
         jButtonAdd.setEnabled(true);
@@ -445,6 +466,7 @@ public class MainPage extends javax.swing.JFrame {
     }//GEN-LAST:event_jButtonManageCoursesActionPerformed
 
     private void jButtonViewStudentsActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonViewStudentsActionPerformed
+        setActiveButton(jButtonViewStudents);
         loadCourses();
         jComboBox.setEnabled(true);
         jButtonAdd.setEnabled(true);
@@ -599,6 +621,7 @@ public class MainPage extends javax.swing.JFrame {
                 attendanceModel = null;
                 attendanceTodayColumn = -1;
                 loadStudentsForSelectedCourse();
+                setActiveButton(jButtonViewStudents);
             } catch (Exception ex) {
                 JOptionPane.showMessageDialog(this, "Unable to update enrollments: " + ex.getMessage(),
                         "Error", JOptionPane.ERROR_MESSAGE);
@@ -657,10 +680,14 @@ public class MainPage extends javax.swing.JFrame {
             return;
         }
         if (studentGradesModel != null) {
-            int row = jTable.getSelectedRow();
-            int col = jTable.getSelectedColumn();
-            if (row >= 0 && col > 0) {
-                jTable.editCellAt(row, col);
+            if (jTable.getRowCount() > 0 && jTable.getColumnCount() > 1) {
+                jTable.changeSelection(0, 1, false, false);
+                jTable.editCellAt(0, 1);
+                Component editor = jTable.getEditorComponent();
+                if (editor instanceof JTextComponent tc) {
+                    tc.requestFocusInWindow();
+                    tc.selectAll();
+                }
             }
             return;
         }
@@ -686,6 +713,7 @@ public class MainPage extends javax.swing.JFrame {
     }//GEN-LAST:event_jButtonSearchActionPerformed
 
     private void jButtonViewFinalGradesActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonViewFinalGradesActionPerformed
+        setActiveButton(jButtonViewFinalGrades);
         loadGradeLevelsForFinalGrades();
         jComboBox.setEnabled(true);
         jButtonAdd.setEnabled(false);
@@ -702,7 +730,8 @@ public class MainPage extends javax.swing.JFrame {
     }//GEN-LAST:event_jButtonViewFinalGradesActionPerformed
 
     private void jButtonAttendanceActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonAttendanceActionPerformed
-         loadCoursesForAttendance();
+        setActiveButton(jButtonAttendance);
+        loadCoursesForAttendance();
         jComboBox.setEnabled(true);
         jButtonAdd.setEnabled(false);
         jButtonDelete.setEnabled(false);
@@ -818,9 +847,9 @@ private void loadCourses() {
         if (sel instanceof Integer g) {
             return g;
         }
-        if (sel instanceof String s && s.startsWith("Grade ")) {
+        if (sel instanceof String s ) {
             try {
-                return Integer.parseInt(s.substring(6));
+                return Integer.parseInt(s.replaceAll("\\D", ""));
             } catch (NumberFormatException ex) {
                 return 0;
             }
@@ -871,6 +900,7 @@ private void loadCourses() {
                     new RowSorter.SortKey(2, SortOrder.ASCENDING)));
             selectionMode = true;
             SearchUtil.applyFilter(jTable, jTextFieldSearch.getText());
+            setActiveButton(jButtonViewStudents);
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this, "Unable to load students: " + ex.getMessage(),
                     "Error", JOptionPane.ERROR_MESSAGE);
@@ -945,12 +975,11 @@ private void loadCourses() {
 
     private void loadGradeLevelsForFinalGrades() {
         try {
+            FinalGradeDAO dao = new UcanaccessFinalGradeDAO();
             List<Integer> grades = studentDAO.findGradeLevels();
             jComboBox.removeAllItems();
             for (Integer g : grades) {
-                if (g >= 10 && g <= 12) {
-                    jComboBox.addItem("Grade " + g);
-                }
+                jComboBox.addItem(g);
             }
             if (jComboBox.getItemCount() > 0) {
                 jComboBox.setSelectedIndex(0);

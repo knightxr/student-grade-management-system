@@ -40,4 +40,21 @@ public class UcanaccessFinalGradeDAO implements FinalGradeDAO {
             }
         }
     }
+    
+    @Override
+    public List<Integer> findGradeLevels() throws SQLException {
+        final String sql = """
+            SELECT DISTINCT s.gradeLevel
+            FROM tblFinalGrades f
+            JOIN tblStudents s ON f.studentId = s.studentId
+            ORDER BY s.gradeLevel
+        """;
+        try (Connection c = DBManager.get(); Statement st = c.createStatement(); ResultSet rs = st.executeQuery(sql)) {
+            List<Integer> grades = new ArrayList<>();
+            while (rs.next()) {
+                grades.add(rs.getInt(1));
+            }
+            return grades;
+        }
+    }
 }

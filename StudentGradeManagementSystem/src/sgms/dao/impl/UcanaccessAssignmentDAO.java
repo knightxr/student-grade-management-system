@@ -35,6 +35,22 @@ public class UcanaccessAssignmentDAO implements AssignmentDAO {
     }
 
     @Override
+    public void update(Assignment a) throws SQLException {
+        final String sql = "UPDATE tblAssignments SET title=?, maxMarks=?, dueDate=? WHERE assignmentId=?";
+        try (Connection c = DBManager.get(); PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setString(1, a.getTitle());
+            if (a.getMaxMarks() != null) {
+                ps.setInt(2, a.getMaxMarks());
+            } else {
+                ps.setNull(2, Types.INTEGER);
+            }
+            ps.setDate(3, a.getDueDate());
+            ps.setInt(4, a.getAssignmentId());
+            ps.executeUpdate();
+        }
+    }
+    
+    @Override
     public boolean delete(int assignmentId) throws SQLException {
         final String delGrades = "DELETE FROM tblGrades WHERE assignmentId = ?";
         final String delAssign = "DELETE FROM tblAssignments WHERE assignmentId = ?";

@@ -3,6 +3,7 @@ package sgms.ui;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Font;
+import java.awt.GridLayout;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.temporal.TemporalAdjusters;
@@ -14,6 +15,11 @@ import javax.swing.JOptionPane;
 import javax.swing.JTable;
 import javax.swing.RowSorter;
 import javax.swing.SortOrder;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JSpinner;
+import javax.swing.SpinnerDateModel;
+import javax.swing.JTextField;
 import javax.swing.table.TableRowSorter;
 import javax.swing.text.JTextComponent;
 import sgms.dao.AssignmentDAO;
@@ -23,6 +29,7 @@ import sgms.dao.StudentDAO;
 import sgms.dao.AttendanceDAO;
 import sgms.dao.FeedbackDAO;
 import sgms.dao.CourseDAO;
+import sgms.dao.AssignmentDAO;
 import sgms.dao.impl.UcanaccessAssignmentDAO;
 import sgms.dao.impl.UcanaccessFinalGradeDAO;
 import sgms.dao.impl.UcanaccessGradeDAO;
@@ -35,6 +42,7 @@ import sgms.model.Course;
 import sgms.model.FinalGrade;
 import sgms.model.Student;
 import sgms.util.SearchUtil;
+import sgms.ui.AssignmentTableModel;
 
 /**
  * 
@@ -52,11 +60,15 @@ public class MainPage extends javax.swing.JFrame {
     private AttendanceTableModel attendanceModel;
     private StudentFeedbackTableModel feedbackModel;
     private CourseTableModel courseModel;
+    private AssignmentTableModel assignmentModel;
     private javax.swing.table.TableColumn courseDeleteColumn;
+    private javax.swing.table.TableColumn assignmentDeleteColumn;
     private boolean courseDeleteMode = false;
+    private boolean assignmentDeleteMode = false;
     private boolean selectionMode = false;
     private int attendanceTodayColumn = -1;
     private final FeedbackDAO feedbackDAO = new UcanaccessFeedbackDAO();
+    private final AssignmentDAO assignmentDAO = new UcanaccessAssignmentDAO();
     
     private void setActiveButton(javax.swing.JButton active) {
         Color defaultColor = Color.WHITE;
@@ -67,7 +79,8 @@ public class MainPage extends javax.swing.JFrame {
             jButtonViewFinalGrades,
             jButtonAttendance,
             jButtonStudentFeedback,
-            jButtonManageCourses
+            jButtonManageCourses,
+            jButtonManageAssignments
         };
         for (javax.swing.JButton b : buttons) {
             if (b != null) {
@@ -258,6 +271,11 @@ public class MainPage extends javax.swing.JFrame {
         jPanel2.add(jButtonManageCourses, new org.netbeans.lib.awtextra.AbsoluteConstraints(75, 339, 150, 36));
 
         jButtonManageAssignments.setText("Manage Assignments");
+        jButtonManageAssignments.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButtonManageAssignmentsActionPerformed(evt);
+            }
+        });
         jPanel2.add(jButtonManageAssignments, new org.netbeans.lib.awtextra.AbsoluteConstraints(75, 403, 150, 36));
 
         jButtonStudentFeedback.setText("Student Feedback");
@@ -501,6 +519,9 @@ public class MainPage extends javax.swing.JFrame {
         courseModel = null;
         courseDeleteColumn = null;
         courseDeleteMode = false;
+        assignmentModel = null;
+        assignmentDeleteColumn = null;
+        assignmentDeleteMode = false;
         attendanceTodayColumn = -1;
         selectionMode = false;
         loadStudentGradesForSelectedCourse();
@@ -572,6 +593,50 @@ public class MainPage extends javax.swing.JFrame {
             int row = courseModel.getRowCount() - 1;
             jTable.setRowSelectionInterval(row, row);
             jTable.scrollRectToVisible(jTable.getCellRect(row, 0, true));
+            return;
+        }
+        if (assignmentModel != null) {
+            int courseId = getSelectedCourseId();
+            if (courseId <= 0) {
+                return;
+            }
+            JTextField titleField = new JTextField();
+            JTextField maxField = new JTextField();
+            JSpinner dateSpinner = new JSpinner(new SpinnerDateModel());
+            dateSpinner.setEditor(new JSpinner.DateEditor(dateSpinner, "yyyy-MM-dd"));
+            JPanel panel = new JPanel(new GridLayout(0, 2));
+            panel.add(new JLabel("Title:"));
+            panel.add(titleField);
+            panel.add(new JLabel("Max Marks:"));
+            panel.add(maxField);
+            panel.add(new JLabel("Due Date:"));
+            panel.add(dateSpinner);
+            int result = JOptionPane.showConfirmDialog(this, panel, "New Assignment", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+            if (result == JOptionPane.OK_OPTION) {
+                String title = titleField.getText().trim();
+                if (title.isEmpty()) {
+                    return;
+                }
+                Integer max = null;
+                if (!maxField.getText().trim().isEmpty()) {
+                    try {
+                        max = Integer.parseInt(maxField.getText().trim());
+                    } catch (NumberFormatException ex) {
+                        JOptionPane.showMessageDialog(this, "Max marks must be a number.");
+                        return;
+                    }
+                }
+                java.util.Date utilDate = (java.util.Date) dateSpinner.getValue();
+                java.sql.Date due = new java.sql.Date(utilDate.getTime());
+                Assignment a = new Assignment(0, courseId, title, max, due);
+                if (jTable.getRowSorter() != null) {
+                    jTable.getRowSorter().setSortKeys(null);
+                }
+                assignmentModel.addAssignment(a);
+                int row = assignmentModel.getRowCount() - 1;
+                jTable.setRowSelectionInterval(row, row);
+                jTable.scrollRectToVisible(jTable.getCellRect(row, 0, true));
+            }
             return;
         }
         if (feedbackModel != null) {
@@ -649,6 +714,21 @@ public class MainPage extends javax.swing.JFrame {
             }
             return;
         }
+        if (assignmentModel != null) {
+            if (!assignmentDeleteMode) {
+                jTable.addColumn(assignmentDeleteColumn);
+                jTable.moveColumn(jTable.getColumnCount() - 1, 0);
+                assignmentDeleteMode = true;
+            } else {
+                int row = jTable.getSelectedRow();
+                if (row >= 0) {
+                    int modelRow = jTable.convertRowIndexToModel(row);
+                    assignmentModel.markDeleted(modelRow);
+                    jTable.repaint();
+                }
+            }
+            return;
+        }
         if (feedbackModel != null) {
             int row = jTable.getSelectedRow();
             if (row >= 0) {
@@ -713,6 +793,8 @@ public class MainPage extends javax.swing.JFrame {
             loadAttendanceForSelectedCourse();
         } else if (feedbackModel != null) {
             loadFeedbackForSelectedCourse();
+        } else if (assignmentModel != null) {
+            loadAssignmentsForSelectedCourse();
         } else if (courseModel != null) {
             loadCoursesForSelectedGrade();
         }
@@ -771,6 +853,29 @@ public class MainPage extends javax.swing.JFrame {
                 setActiveButton(jButtonViewStudents);
             } catch (Exception ex) {
                 JOptionPane.showMessageDialog(this, "Unable to update enrollments: " + ex.getMessage(),
+                        "Error", JOptionPane.ERROR_MESSAGE);
+            }
+            return;
+        }
+        if (assignmentModel != null) {
+            try {
+                Set<Integer> deleted = assignmentModel.getDeletedIds();
+                for (Assignment a : assignmentModel.getAssignments()) {
+                    if (deleted.contains(a.getAssignmentId())) {
+                        if (a.getAssignmentId() > 0) {
+                            assignmentDAO.delete(a.getAssignmentId());
+                        }
+                    } else {
+                        if (a.getAssignmentId() == 0) {
+                            assignmentDAO.add(a);
+                        } else {
+                            assignmentDAO.update(a);
+                        }
+                    }
+                }
+                loadAssignmentsForSelectedCourse();
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, "Unable to save assignments: " + ex.getMessage(),
                         "Error", JOptionPane.ERROR_MESSAGE);
             }
             return;
@@ -880,7 +985,19 @@ public class MainPage extends javax.swing.JFrame {
             }
             return;
         }
-         if (feedbackModel != null) {
+        if (assignmentModel != null) {
+            if (jTable.getRowCount() > 0) {
+                jTable.changeSelection(0, 2, false, false);
+                jTable.editCellAt(0, 2);
+                Component editor = jTable.getEditorComponent();
+                if (editor instanceof JTextComponent tc) {
+                    tc.requestFocusInWindow();
+                    tc.selectAll();
+                }
+            }
+            return;
+        }
+        if (feedbackModel != null) {
             if (jTable.getRowCount() > 0) {
                 jTable.changeSelection(0, 2, false, false);
                 jTable.editCellAt(0, 2);
@@ -941,6 +1058,9 @@ public class MainPage extends javax.swing.JFrame {
         courseModel = null;
         courseDeleteColumn = null;
         courseDeleteMode = false;
+        assignmentModel = null;
+        assignmentDeleteColumn = null;
+        assignmentDeleteMode = false;
         finalGradesModel = null;
         attendanceTodayColumn = -1;
         selectionMode = false;
@@ -963,6 +1083,9 @@ public class MainPage extends javax.swing.JFrame {
         courseModel = null;
         courseDeleteColumn = null;
         courseDeleteMode = false;
+        assignmentModel = null;
+        assignmentDeleteColumn = null;
+        assignmentDeleteMode = false;
         selectionMode = false;
         loadAttendanceForSelectedCourse();
     }//GEN-LAST:event_jButtonAttendanceActionPerformed
@@ -984,9 +1107,37 @@ public class MainPage extends javax.swing.JFrame {
         courseModel = null;
         courseDeleteColumn = null;
         courseDeleteMode = false;
+        assignmentModel = null;
+        assignmentDeleteColumn = null;
+        assignmentDeleteMode = false;
         selectionMode = false;
         loadFeedbackForSelectedCourse();
     }//GEN-LAST:event_jButtonStudentFeedbackActionPerformed
+
+    private void jButtonManageAssignmentsActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonManageAssignmentsActionPerformed
+        setActiveButton(jButtonManageAssignments);
+        loadCoursesForAssignments();
+        jComboBox.setEnabled(true);
+        jButtonAdd.setEnabled(true);
+        jButtonDelete.setEnabled(true);
+        jButtonSave.setEnabled(true);
+        jButtonEdit.setEnabled(true);
+        studentTableModel = null;
+        studentSelectionModel = null;
+        studentGradesModel = null;
+        finalGradesModel = null;
+        attendanceModel = null;
+        feedbackModel = null;
+        assignmentModel = null;
+        assignmentDeleteColumn = null;
+        assignmentDeleteMode = false;
+        courseModel = null;
+        courseDeleteColumn = null;
+        courseDeleteMode = false;
+        selectionMode = false;
+        attendanceTodayColumn = -1;
+        loadAssignmentsForSelectedCourse();
+    }//GEN-LAST:event_jButtonManageAssignmentsActionPerformed
 
     /**
      * @param args the command line arguments
@@ -1196,7 +1347,6 @@ private void loadCourses() {
             if (courseId <= 0) {
                 return;
             }
-            AssignmentDAO assignmentDAO = new UcanaccessAssignmentDAO();
             GradeDAO gradeDAO = new UcanaccessGradeDAO();
             List<Student> students = studentDAO.findByCourse(courseId);
             List<Assignment> assignments = assignmentDAO.findByCourse(courseId);
@@ -1274,6 +1424,67 @@ private void loadCourses() {
         }
     }
   
+    private void loadCoursesForAssignments() {
+        try {
+            List<Course> courses = studentDAO.findCourses();
+            jComboBox.removeAllItems();
+            for (Course c : courses) {
+                jComboBox.addItem(c);
+            }
+            if (jComboBox.getItemCount() > 0) {
+                jComboBox.setSelectedIndex(0);
+            }
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, "Unable to load courses: " + ex.getMessage(),
+                    "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void loadAssignmentsForSelectedCourse() {
+        try {
+            int courseId = getSelectedCourseId();
+            if (courseId <= 0) {
+                return;
+            }
+            List<Assignment> assignments = assignmentDAO.findByCourse(courseId);
+            assignmentModel = new AssignmentTableModel(assignments);
+            jTable.setModel(assignmentModel);
+            jTable.setRowSorter(new TableRowSorter<>(assignmentModel));
+            ((javax.swing.table.DefaultTableCellRenderer) jTable.getTableHeader().getDefaultRenderer())
+                    .setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+            javax.swing.JCheckBox editorCheckBox = new javax.swing.JCheckBox();
+            editorCheckBox.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+            jTable.setDefaultEditor(Boolean.class, new javax.swing.DefaultCellEditor(editorCheckBox));
+            for (int i = 0; i < jTable.getColumnCount(); i++) {
+                javax.swing.table.TableColumn column = jTable.getColumnModel().getColumn(i);
+                if (jTable.getColumnClass(i) == Boolean.class) {
+                    column.setCellRenderer(new javax.swing.table.TableCellRenderer() {
+                        final javax.swing.JCheckBox cb = new javax.swing.JCheckBox();
+                        {
+                            cb.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+                        }
+                        @Override
+                        public java.awt.Component getTableCellRendererComponent(javax.swing.JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+                            cb.setSelected(Boolean.TRUE.equals(value));
+                            return cb;
+                        }
+                    });
+                } else {
+                    javax.swing.table.DefaultTableCellRenderer leftRenderer = new javax.swing.table.DefaultTableCellRenderer();
+                    leftRenderer.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+                    column.setCellRenderer(leftRenderer);
+                }
+            }
+            assignmentDeleteColumn = jTable.getColumnModel().getColumn(0);
+            jTable.removeColumn(assignmentDeleteColumn);
+            assignmentDeleteMode = false;
+            SearchUtil.applyFilter(jTable, jTextFieldSearch.getText());
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, "Unable to load assignments: " + ex.getMessage(),
+                    "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+    
     private void loadCoursesForAttendance() {
         try {
             List<Course> courses = studentDAO.findCourses();

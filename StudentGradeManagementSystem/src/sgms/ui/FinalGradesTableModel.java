@@ -34,10 +34,7 @@ public class FinalGradesTableModel extends AbstractTableModel {
 
     @Override
     public Class<?> getColumnClass(int columnIndex) {
-        return switch (columnIndex) {
-            case 0, 1 -> String.class;
-            default -> Integer.class;
-        };
+        return String.class;
     }
     
     @Override
@@ -46,13 +43,17 @@ public class FinalGradesTableModel extends AbstractTableModel {
         return switch (columnIndex) {
             case 0 -> g.getFirstName();
             case 1 -> g.getLastName();
-            case 2 -> g.getTerm1();
-            case 3 -> g.getTerm2();
-            case 4 -> g.getTerm3();
-            case 5 -> g.getTerm4();
-            case 6 -> g.getFinalGrade();
+            case 2 -> format(g.getTerm1());
+            case 3 -> format(g.getTerm2());
+            case 4 -> format(g.getTerm3());
+            case 5 -> format(g.getTerm4());
+            case 6 -> format(g.getFinalGrade());
             default -> null;
         };
+    }
+
+    private String format(Integer value) {
+        return value != null ? value + "%" : "";
     }
 
     @Override

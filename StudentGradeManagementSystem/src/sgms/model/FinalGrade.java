@@ -14,8 +14,8 @@ public class FinalGrade {
     private Integer finalGrade;
 
     public FinalGrade(String firstName, String lastName,
-                      Integer term1, Integer term2, Integer term3,
-                      Integer term4, Integer finalGrade) {
+            Integer term1, Integer term2, Integer term3,
+            Integer term4, Integer finalGrade) {
         this.firstName = firstName;
         this.lastName = lastName;
         this.term1 = term1;

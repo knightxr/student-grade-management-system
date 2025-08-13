@@ -24,14 +24,13 @@ public class DBSetup {
                     role          TEXT(20)  DEFAULT 'Teacher'
                 )
             """);
-            
+
             s.executeUpdate("""
                 INSERT INTO tblUsers (fullName, username, passwordHash, role)
                 VALUES ('Administrator', 'admin',
                         '6cd31521af231',
                         'Administrator')
             """);
-
 
             // 2 ───────── STUDENTS ────────────────────────────────────────────
             s.executeUpdate("""
@@ -48,7 +47,8 @@ public class DBSetup {
                 CREATE TABLE tblCourses (
                     courseId    AUTOINCREMENT PRIMARY KEY,
                     courseCode  TEXT(10) UNIQUE NOT NULL,
-                    courseName  TEXT(50) NOT NULL
+                    courseName  TEXT(50) NOT NULL,
+                    gradeLevel  INTEGER    NOT NULL
                 )
             """);
 
@@ -62,7 +62,7 @@ public class DBSetup {
                     FOREIGN KEY (courseId)  REFERENCES tblCourses(courseId)
                 )
             """);
-            
+
             // 4 ───────── ASSIGNMENTS ────────────────────────────────────────
             s.executeUpdate("""
                 CREATE TABLE tblAssignments (
@@ -87,7 +87,7 @@ public class DBSetup {
                 )
             """);
 
-             // 6 ───────── FINAL GRADES ────────────────────────────────────────
+            // 6 ───────── FINAL GRADES ────────────────────────────────────────
             s.executeUpdate("""
                 CREATE TABLE tblFinalGrades (
                     studentId  INTEGER PRIMARY KEY,

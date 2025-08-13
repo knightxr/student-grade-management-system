@@ -14,7 +14,14 @@ public class StudentDAOTest {
     private static StudentDAO dao;
 
     @BeforeClass
-    public static void setup() {           // JUnit-4 annotation + public static
+    public static void setup() throws Exception {
+        dao = new UcanaccessStudentDAO();
+        try (Connection c = DBManager.get(); Statement st = c.createStatement()) {
+            try {
+                st.execute("ALTER TABLE tblCourses ADD COLUMN gradeLevel INTEGER DEFAULT 10");
+            } catch (SQLException ignored) {
+            }
+        }
         dao = new UcanaccessStudentDAO();
     }
 
@@ -46,10 +53,11 @@ public class StudentDAOTest {
         // Insert course directly
         try (Connection c = DBManager.get();
              PreparedStatement ps = c.prepareStatement(
-                     "INSERT INTO tblCourses(courseCode, courseName) VALUES (?, ?)",
+                     "INSERT INTO tblCourses(courseCode, courseName, gradeLevel) VALUES (?, ?, ?)",
                      Statement.RETURN_GENERATED_KEYS)) {
             ps.setString(1, code);
             ps.setString(2, "Test Course");
+            ps.setInt(3, 10);
             ps.executeUpdate();
             try (ResultSet keys = ps.getGeneratedKeys()) {
                 keys.next();

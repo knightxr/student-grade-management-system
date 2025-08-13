@@ -134,12 +134,15 @@ public class UcanaccessStudentDAO implements StudentDAO {
 
     @Override
     public List<Course> findCourses() throws SQLException {
-        final String sql = "SELECT courseId, courseName FROM tblCourses ORDER BY courseName";
+        final String sql = "SELECT courseId, courseCode, courseName, gradeLevel FROM tblCourses ORDER BY courseName";
         try (Connection c = DBManager.get(); Statement st = c.createStatement(); ResultSet rs = st.executeQuery(sql)) {
 
             List<Course> courses = new ArrayList<>();
             while (rs.next()) {
-                courses.add(new Course(rs.getInt("courseId"), rs.getString("courseName")));
+                courses.add(new Course(rs.getInt("courseId"),
+                        rs.getString("courseCode"),
+                        rs.getString("courseName"),
+                        rs.getInt("gradeLevel")));
             }
             return courses;
         }

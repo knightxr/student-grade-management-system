@@ -22,12 +22,14 @@ import sgms.dao.GradeDAO;
 import sgms.dao.StudentDAO;
 import sgms.dao.AttendanceDAO;
 import sgms.dao.FeedbackDAO;
+import sgms.dao.CourseDAO;
 import sgms.dao.impl.UcanaccessAssignmentDAO;
 import sgms.dao.impl.UcanaccessFinalGradeDAO;
 import sgms.dao.impl.UcanaccessGradeDAO;
 import sgms.dao.impl.UcanaccessStudentDAO;
 import sgms.dao.impl.UcanaccessAttendanceDAO;
 import sgms.dao.impl.UcanaccessFeedbackDAO;
+import sgms.dao.impl.UcanaccessCourseDAO;
 import sgms.model.Assignment;
 import sgms.model.Course;
 import sgms.model.FinalGrade;
@@ -42,12 +44,14 @@ import sgms.util.SearchUtil;
 public class MainPage extends javax.swing.JFrame {
 
     private final StudentDAO studentDAO = new UcanaccessStudentDAO();
+    private final CourseDAO courseDAO = new UcanaccessCourseDAO();
     private StudentTableModel studentTableModel;
     private StudentSelectionTableModel studentSelectionModel;
     private StudentGradesTableModel studentGradesModel;
     private FinalGradesTableModel finalGradesModel;
     private AttendanceTableModel attendanceModel;
     private StudentFeedbackTableModel feedbackModel;
+    private CourseTableModel courseModel;
     private boolean selectionMode = false;
     private int attendanceTodayColumn = -1;
     private final FeedbackDAO feedbackDAO = new UcanaccessFeedbackDAO();
@@ -60,7 +64,8 @@ public class MainPage extends javax.swing.JFrame {
             jButtonViewStudentGrades,
             jButtonViewFinalGrades,
             jButtonAttendance,
-            jButtonStudentFeedback
+            jButtonStudentFeedback,
+            jButtonManageCourses
         };
         for (javax.swing.JButton b : buttons) {
             if (b != null) {
@@ -93,6 +98,12 @@ public class MainPage extends javax.swing.JFrame {
                     Color base = (row % 2 == 0) ? Color.WHITE : new Color(245, 245, 245);
                     if (attendanceModel != null && column == attendanceTodayColumn) {
                         base = new Color(255, 255, 200);
+                    }
+                    if (courseModel != null) {
+                        int modelRow = convertRowIndexToModel(row);
+                        if (courseModel.isMarkedForDeletion(modelRow)) {
+                            base = Color.RED;
+                        }
                     }
                     c.setBackground(isRowSelected(row) ? getSelectionBackground() : base);
                 }
@@ -483,13 +494,34 @@ public class MainPage extends javax.swing.JFrame {
         finalGradesModel = null;
         studentSelectionModel = null;
         attendanceModel = null;
+        feedbackModel = null;
+        courseModel = null;
         attendanceTodayColumn = -1;
         selectionMode = false;
         loadStudentGradesForSelectedCourse();
     }//GEN-LAST:event_jButtonViewStudentGradesActionPerformed
 
     private void jButtonManageCoursesActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonManageCoursesActionPerformed
-        // TODO add your handling code here:
+        setActiveButton(jButtonManageCourses);
+        jComboBox.setEnabled(true);
+        jComboBox.removeAllItems();
+        for (int g = 10; g <= 12; g++) {
+            jComboBox.addItem(g);
+        }
+        jComboBox.setSelectedIndex(0);
+        jButtonAdd.setEnabled(true);
+        jButtonDelete.setEnabled(true);
+        jButtonSave.setEnabled(true);
+        jButtonEdit.setEnabled(true);
+        studentTableModel = null;
+        studentSelectionModel = null;
+        studentGradesModel = null;
+        finalGradesModel = null;
+        attendanceModel = null;
+        feedbackModel = null;
+        selectionMode = false;
+        attendanceTodayColumn = -1;
+        loadCoursesForSelectedGrade();
     }//GEN-LAST:event_jButtonManageCoursesActionPerformed
 
     private void jButtonViewStudentsActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonViewStudentsActionPerformed
@@ -503,6 +535,8 @@ public class MainPage extends javax.swing.JFrame {
         studentGradesModel = null;
         finalGradesModel = null;
         attendanceModel = null;
+        feedbackModel = null;
+        courseModel = null;
         attendanceTodayColumn = -1;
         selectionMode = false;
         studentSelectionModel = null;
@@ -511,6 +545,26 @@ public class MainPage extends javax.swing.JFrame {
 
     private void jButtonAddActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonAddActionPerformed
         if (finalGradesModel != null) {
+            return;
+        }
+        if (courseModel != null) {
+            int grade = getSelectedGradeLevel();
+            String code = JOptionPane.showInputDialog(this, "Enter course code:");
+            if (code == null || code.trim().isEmpty()) {
+                return;
+            }
+            String name = JOptionPane.showInputDialog(this, "Enter course name:");
+            if (name == null || name.trim().isEmpty()) {
+                return;
+            }
+            Course c = new Course(0, code.trim(), name.trim(), grade, 0);
+            if (jTable.getRowSorter() != null) {
+                jTable.getRowSorter().setSortKeys(null);
+            }
+            courseModel.addCourse(c);
+            int row = courseModel.getRowCount() - 1;
+            jTable.setRowSelectionInterval(row, row);
+            jTable.scrollRectToVisible(jTable.getCellRect(row, 0, true));
             return;
         }
         if (feedbackModel != null) {
@@ -571,6 +625,15 @@ public class MainPage extends javax.swing.JFrame {
 
     private void jButtonDeleteActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonDeleteActionPerformed
         if (finalGradesModel != null) {
+            return;
+        }
+        if (courseModel != null) {
+            int row = jTable.getSelectedRow();
+            if (row >= 0) {
+                int modelRow = jTable.convertRowIndexToModel(row);
+                courseModel.markDeleted(modelRow);
+                jTable.repaint();
+            }
             return;
         }
         if (feedbackModel != null) {
@@ -637,6 +700,8 @@ public class MainPage extends javax.swing.JFrame {
             loadAttendanceForSelectedCourse();
         } else if (feedbackModel != null) {
             loadFeedbackForSelectedCourse();
+        } else if (courseModel != null) {
+            loadCoursesForSelectedGrade();
         }
     }//GEN-LAST:event_jComboBoxActionPerformed
 
@@ -693,6 +758,29 @@ public class MainPage extends javax.swing.JFrame {
                 setActiveButton(jButtonViewStudents);
             } catch (Exception ex) {
                 JOptionPane.showMessageDialog(this, "Unable to update enrollments: " + ex.getMessage(),
+                        "Error", JOptionPane.ERROR_MESSAGE);
+            }
+            return;
+        }
+        if (courseModel != null) {
+            try {
+                Set<Integer> deleted = courseModel.getDeletedIds();
+                for (Course c : courseModel.getCourses()) {
+                    if (deleted.contains(c.getCourseId())) {
+                        if (c.getCourseId() > 0) {
+                            courseDAO.delete(c.getCourseId());
+                        }
+                    } else {
+                        if (c.getCourseId() == 0) {
+                            courseDAO.add(c);
+                        } else {
+                            courseDAO.update(c);
+                        }
+                    }
+                }
+                loadCoursesForSelectedGrade();
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, "Unable to save courses: " + ex.getMessage(),
                         "Error", JOptionPane.ERROR_MESSAGE);
             }
             return;
@@ -767,6 +855,18 @@ public class MainPage extends javax.swing.JFrame {
         if (finalGradesModel != null) {
             return;
         }
+        if (courseModel != null) {
+            if (jTable.getRowCount() > 0) {
+                jTable.changeSelection(0, 2, false, false);
+                jTable.editCellAt(0, 2);
+                Component editor = jTable.getEditorComponent();
+                if (editor instanceof JTextComponent tc) {
+                    tc.requestFocusInWindow();
+                    tc.selectAll();
+                }
+            }
+            return;
+        }
          if (feedbackModel != null) {
             if (jTable.getRowCount() > 0) {
                 jTable.changeSelection(0, 2, false, false);
@@ -824,6 +924,9 @@ public class MainPage extends javax.swing.JFrame {
         studentGradesModel = null;
         studentSelectionModel = null;
         attendanceModel = null;
+        feedbackModel = null;
+        courseModel = null;
+        finalGradesModel = null;
         attendanceTodayColumn = -1;
         selectionMode = false;
         loadFinalGradesForSelectedGrade();
@@ -841,6 +944,8 @@ public class MainPage extends javax.swing.JFrame {
         studentSelectionModel = null;
         studentGradesModel = null;
         finalGradesModel = null;
+        feedbackModel = null;
+        courseModel = null;
         selectionMode = false;
         loadAttendanceForSelectedCourse();
     }//GEN-LAST:event_jButtonAttendanceActionPerformed
@@ -858,6 +963,8 @@ public class MainPage extends javax.swing.JFrame {
         studentGradesModel = null;
         finalGradesModel = null;
         attendanceModel = null;
+        feedbackModel = null;
+        courseModel = null;
         selectionMode = false;
         loadFeedbackForSelectedCourse();
     }//GEN-LAST:event_jButtonStudentFeedbackActionPerformed
@@ -972,6 +1079,19 @@ private void loadCourses() {
             }
         }
         return 0;
+    }
+    
+    private void loadCoursesForSelectedGrade() {
+        try {
+            int grade = getSelectedGradeLevel();
+            List<Course> courses = courseDAO.findByGrade(grade);
+            courseModel = new CourseTableModel(courses);
+            jTable.setModel(courseModel);
+            jTable.setRowSorter(new TableRowSorter<>(courseModel));
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, "Unable to load courses: " + ex.getMessage(),
+                    "Error", JOptionPane.ERROR_MESSAGE);
+        }
     }
     
     private void loadStudentsForSelectedCourse() {

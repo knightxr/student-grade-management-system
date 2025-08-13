@@ -52,6 +52,8 @@ public class MainPage extends javax.swing.JFrame {
     private AttendanceTableModel attendanceModel;
     private StudentFeedbackTableModel feedbackModel;
     private CourseTableModel courseModel;
+    private javax.swing.table.TableColumn courseDeleteColumn;
+    private boolean courseDeleteMode = false;
     private boolean selectionMode = false;
     private int attendanceTodayColumn = -1;
     private final FeedbackDAO feedbackDAO = new UcanaccessFeedbackDAO();
@@ -496,6 +498,8 @@ public class MainPage extends javax.swing.JFrame {
         attendanceModel = null;
         feedbackModel = null;
         courseModel = null;
+        courseDeleteColumn = null;
+        courseDeleteMode = false;
         attendanceTodayColumn = -1;
         selectionMode = false;
         loadStudentGradesForSelectedCourse();
@@ -506,7 +510,7 @@ public class MainPage extends javax.swing.JFrame {
         jComboBox.setEnabled(true);
         jComboBox.removeAllItems();
         for (int g = 10; g <= 12; g++) {
-            jComboBox.addItem(g);
+            jComboBox.addItem("Grade " + g);
         }
         jComboBox.setSelectedIndex(0);
         jButtonAdd.setEnabled(true);
@@ -537,6 +541,8 @@ public class MainPage extends javax.swing.JFrame {
         attendanceModel = null;
         feedbackModel = null;
         courseModel = null;
+        courseDeleteColumn = null;
+        courseDeleteMode = false;
         attendanceTodayColumn = -1;
         selectionMode = false;
         studentSelectionModel = null;
@@ -628,11 +634,17 @@ public class MainPage extends javax.swing.JFrame {
             return;
         }
         if (courseModel != null) {
-            int row = jTable.getSelectedRow();
-            if (row >= 0) {
-                int modelRow = jTable.convertRowIndexToModel(row);
-                courseModel.markDeleted(modelRow);
-                jTable.repaint();
+            if (!courseDeleteMode) {
+                jTable.addColumn(courseDeleteColumn);
+                jTable.moveColumn(jTable.getColumnCount() - 1, 0);
+                courseDeleteMode = true;
+            } else {
+                int row = jTable.getSelectedRow();
+                if (row >= 0) {
+                    int modelRow = jTable.convertRowIndexToModel(row);
+                    courseModel.markDeleted(modelRow);
+                    jTable.repaint();
+                }
             }
             return;
         }
@@ -926,6 +938,8 @@ public class MainPage extends javax.swing.JFrame {
         attendanceModel = null;
         feedbackModel = null;
         courseModel = null;
+        courseDeleteColumn = null;
+        courseDeleteMode = false;
         finalGradesModel = null;
         attendanceTodayColumn = -1;
         selectionMode = false;
@@ -946,6 +960,8 @@ public class MainPage extends javax.swing.JFrame {
         finalGradesModel = null;
         feedbackModel = null;
         courseModel = null;
+        courseDeleteColumn = null;
+        courseDeleteMode = false;
         selectionMode = false;
         loadAttendanceForSelectedCourse();
     }//GEN-LAST:event_jButtonAttendanceActionPerformed
@@ -965,6 +981,8 @@ public class MainPage extends javax.swing.JFrame {
         attendanceModel = null;
         feedbackModel = null;
         courseModel = null;
+        courseDeleteColumn = null;
+        courseDeleteMode = false;
         selectionMode = false;
         loadFeedbackForSelectedCourse();
     }//GEN-LAST:event_jButtonStudentFeedbackActionPerformed
@@ -1088,6 +1106,34 @@ private void loadCourses() {
             courseModel = new CourseTableModel(courses);
             jTable.setModel(courseModel);
             jTable.setRowSorter(new TableRowSorter<>(courseModel));
+            ((javax.swing.table.DefaultTableCellRenderer) jTable.getTableHeader().getDefaultRenderer())
+                    .setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+            javax.swing.JCheckBox editorCheckBox = new javax.swing.JCheckBox();
+            editorCheckBox.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+            jTable.setDefaultEditor(Boolean.class, new javax.swing.DefaultCellEditor(editorCheckBox));
+            for (int i = 0; i < jTable.getColumnCount(); i++) {
+                javax.swing.table.TableColumn column = jTable.getColumnModel().getColumn(i);
+                if (jTable.getColumnClass(i) == Boolean.class) {
+                    column.setCellRenderer(new javax.swing.table.TableCellRenderer() {
+                        final javax.swing.JCheckBox cb = new javax.swing.JCheckBox();
+                        {
+                            cb.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+                        }
+                        @Override
+                        public java.awt.Component getTableCellRendererComponent(javax.swing.JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+                            cb.setSelected(Boolean.TRUE.equals(value));
+                            return cb;
+                        }
+                    });
+                } else {
+                    javax.swing.table.DefaultTableCellRenderer leftRenderer = new javax.swing.table.DefaultTableCellRenderer();
+                    leftRenderer.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+                    column.setCellRenderer(leftRenderer);
+                }
+            }
+            courseDeleteColumn = jTable.getColumnModel().getColumn(0);
+            jTable.removeColumn(courseDeleteColumn);
+            courseDeleteMode = false;
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this, "Unable to load courses: " + ex.getMessage(),
                     "Error", JOptionPane.ERROR_MESSAGE);

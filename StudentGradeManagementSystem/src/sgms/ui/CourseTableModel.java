@@ -13,7 +13,7 @@ import java.util.Set;
  */
 public class CourseTableModel extends AbstractTableModel {
 
-    private final String[] columns = {"ID", "Code", "Name", "Students"};
+    private final String[] columns = {"Delete", "ID", "Code", "Name", "Students"};
     private final List<Course> courses;
     private final Set<Integer> deletedIds = new HashSet<>();
 
@@ -39,31 +39,42 @@ public class CourseTableModel extends AbstractTableModel {
     @Override
     public Class<?> getColumnClass(int columnIndex) {
         return switch (columnIndex) {
-            case 0, 3 -> Integer.class;
+            case 0 -> Boolean.class;
+            case 1, 4 -> Integer.class;
             default -> String.class;
         };
     }
 
     @Override
     public boolean isCellEditable(int rowIndex, int columnIndex) {
-        return columnIndex == 2; // only course name editable
+        return columnIndex == 0 || columnIndex == 3; // delete checkbox and course name editable
     }
 
     @Override
     public Object getValueAt(int rowIndex, int columnIndex) {
         Course c = courses.get(rowIndex);
         return switch (columnIndex) {
-            case 0 -> c.getCourseId();
-            case 1 -> c.getCourseCode();
-            case 2 -> c.getCourseName();
-            case 3 -> c.getStudentCount();
+            case 0 -> deletedIds.contains(c.getCourseId());
+            case 1 -> c.getCourseId();
+            case 2 -> c.getCourseCode();
+            case 3 -> c.getCourseName();
+            case 4 -> c.getStudentCount();
             default -> null;
         };
     }
 
     @Override
     public void setValueAt(Object aValue, int rowIndex, int columnIndex) {
-        if (columnIndex == 2) {
+        if (columnIndex == 0) {
+            Course c = courses.get(rowIndex);
+            int id = c.getCourseId();
+            if (Boolean.TRUE.equals(aValue)) {
+                deletedIds.add(id);
+            } else {
+                deletedIds.remove(id);
+            }
+            fireTableRowsUpdated(rowIndex, rowIndex);
+        } else if (columnIndex == 3) {
             Course c = courses.get(rowIndex);
             c.setCourseName(String.valueOf(aValue));
             fireTableCellUpdated(rowIndex, columnIndex);

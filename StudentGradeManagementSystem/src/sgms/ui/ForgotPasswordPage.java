@@ -19,6 +19,7 @@ public class ForgotPasswordPage extends javax.swing.JFrame {
     public ForgotPasswordPage() {
         initComponents();
         credentialManager = new CredentialManager();
+        setResizable(false);
     }
 
     /**

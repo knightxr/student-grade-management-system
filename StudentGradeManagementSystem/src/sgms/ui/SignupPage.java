@@ -15,6 +15,7 @@ public class SignupPage extends javax.swing.JFrame {
     public SignupPage() {
         initComponents();
         credentialManager = new CredentialManager();
+        setResizable(false);
     }
     
 

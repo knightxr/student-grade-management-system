@@ -13,6 +13,7 @@ public class LoginPage extends javax.swing.JFrame {
     public LoginPage() {
         initComponents();
         credentialManager = new CredentialManager();
+        setResizable(false);
     }
 
     /**

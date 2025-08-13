@@ -29,7 +29,6 @@ import sgms.dao.StudentDAO;
 import sgms.dao.AttendanceDAO;
 import sgms.dao.FeedbackDAO;
 import sgms.dao.CourseDAO;
-import sgms.dao.AssignmentDAO;
 import sgms.dao.impl.UcanaccessAssignmentDAO;
 import sgms.dao.impl.UcanaccessFinalGradeDAO;
 import sgms.dao.impl.UcanaccessGradeDAO;
@@ -118,6 +117,11 @@ public class MainPage extends javax.swing.JFrame {
                     if (courseModel != null) {
                         int modelRow = convertRowIndexToModel(row);
                         if (courseModel.isMarkedForDeletion(modelRow)) {
+                            base = Color.RED;
+                        }
+                    } else if (assignmentModel != null) {
+                        int modelRow = convertRowIndexToModel(row);
+                        if (assignmentModel.isMarkedForDeletion(modelRow)) {
                             base = Color.RED;
                         }
                     }
@@ -602,6 +606,7 @@ public class MainPage extends javax.swing.JFrame {
             }
             JTextField titleField = new JTextField();
             JTextField maxField = new JTextField();
+            JTextField termField = new JTextField();
             JSpinner dateSpinner = new JSpinner(new SpinnerDateModel());
             dateSpinner.setEditor(new JSpinner.DateEditor(dateSpinner, "yyyy-MM-dd"));
             JPanel panel = new JPanel(new GridLayout(0, 2));
@@ -609,26 +614,48 @@ public class MainPage extends javax.swing.JFrame {
             panel.add(titleField);
             panel.add(new JLabel("Max Marks:"));
             panel.add(maxField);
+            panel.add(new JLabel("Term:"));
+            panel.add(termField);
             panel.add(new JLabel("Due Date:"));
             panel.add(dateSpinner);
             int result = JOptionPane.showConfirmDialog(this, panel, "New Assignment", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
             if (result == JOptionPane.OK_OPTION) {
                 String title = titleField.getText().trim();
                 if (title.isEmpty()) {
+                    JOptionPane.showMessageDialog(this, "Title is required.");
                     return;
                 }
-                Integer max = null;
-                if (!maxField.getText().trim().isEmpty()) {
-                    try {
-                        max = Integer.parseInt(maxField.getText().trim());
-                    } catch (NumberFormatException ex) {
-                        JOptionPane.showMessageDialog(this, "Max marks must be a number.");
-                        return;
-                    }
+                String maxText = maxField.getText().trim();
+                if (maxText.isEmpty()) {
+                    JOptionPane.showMessageDialog(this, "Max marks are required.");
+                    return;
+                }
+                int max;
+                try {
+                    max = Integer.parseInt(maxText);
+                } catch (NumberFormatException ex) {
+                    JOptionPane.showMessageDialog(this, "Max marks must be a number.");
+                    return;
+                }
+                String termText = termField.getText().trim();
+                if (termText.isEmpty()) {
+                    JOptionPane.showMessageDialog(this, "Term is required.");
+                    return;
+                }
+                int term;
+                try {
+                    term = Integer.parseInt(termText);
+                } catch (NumberFormatException ex) {
+                    JOptionPane.showMessageDialog(this, "Term must be a number between 1 and 4.");
+                    return;
+                }
+                if (term < 1 || term > 4) {
+                    JOptionPane.showMessageDialog(this, "Term must be between 1 and 4.");
+                    return;
                 }
                 java.util.Date utilDate = (java.util.Date) dateSpinner.getValue();
                 java.sql.Date due = new java.sql.Date(utilDate.getTime());
-                Assignment a = new Assignment(0, courseId, title, max, due);
+                Assignment a = new Assignment(0, courseId, title, max, term, due);
                 if (jTable.getRowSorter() != null) {
                     jTable.getRowSorter().setSortKeys(null);
                 }

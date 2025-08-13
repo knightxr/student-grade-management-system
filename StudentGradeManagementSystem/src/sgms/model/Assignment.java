@@ -11,22 +11,24 @@ public class Assignment {
     private int courseId;
     private String title;
     private Integer maxMarks;
+    private int term;
     private Date dueDate;
 
     public Assignment() {
     }
 
     public Assignment(int assignmentId, int courseId, String title,
-                      Integer maxMarks, Date dueDate) {
+                      Integer maxMarks, int term, Date dueDate) {
         this.assignmentId = assignmentId;
         this.courseId = courseId;
         this.title = title;
         this.maxMarks = maxMarks;
+        this.term = term;
         this.dueDate = dueDate;
     }
 
-    public Assignment(int courseId, String title) {
-        this(0, courseId, title, null, null);
+    public Assignment(int courseId, String title, int term) {
+        this(0, courseId, title, null, term, null);
     }
 
     public int getAssignmentId() {
@@ -59,6 +61,14 @@ public class Assignment {
 
     public void setMaxMarks(Integer maxMarks) {
         this.maxMarks = maxMarks;
+    }
+
+    public int getTerm() {
+        return term;
+    }
+
+    public void setTerm(int term) {
+        this.term = term;
     }
 
     public Date getDueDate() {

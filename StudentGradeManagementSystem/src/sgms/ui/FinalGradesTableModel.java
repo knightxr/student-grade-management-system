@@ -33,6 +33,14 @@ public class FinalGradesTableModel extends AbstractTableModel {
     }
 
     @Override
+    public Class<?> getColumnClass(int columnIndex) {
+        return switch (columnIndex) {
+            case 0, 1 -> String.class;
+            default -> Integer.class;
+        };
+    }
+    
+    @Override
     public Object getValueAt(int rowIndex, int columnIndex) {
         FinalGrade g = grades.get(rowIndex);
         return switch (columnIndex) {

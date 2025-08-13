@@ -14,7 +14,7 @@ import java.util.Set;
  */
 public class AssignmentTableModel extends AbstractTableModel {
 
-    private final String[] columns = {"Delete", "ID", "Title", "Max Marks", "Due Date"};
+    private final String[] columns = {"Delete", "ID", "Title", "Max Marks", "Term", "Due Date"};
     private final List<Assignment> assignments;
     private final Set<Integer> deletedIds = new HashSet<>();
 
@@ -41,8 +41,8 @@ public class AssignmentTableModel extends AbstractTableModel {
     public Class<?> getColumnClass(int columnIndex) {
         return switch (columnIndex) {
             case 0 -> Boolean.class;
-            case 1, 3 -> Integer.class;
-            case 4 -> Date.class;
+            case 1, 3, 4 -> Integer.class;
+            case 5 -> Date.class;
             default -> String.class;
         };
     }
@@ -60,7 +60,8 @@ public class AssignmentTableModel extends AbstractTableModel {
             case 1 -> a.getAssignmentId();
             case 2 -> a.getTitle();
             case 3 -> a.getMaxMarks();
-            case 4 -> a.getDueDate();
+            case 4 -> a.getTerm();
+            case 5 -> a.getDueDate();
             default -> null;
         };
     }
@@ -91,6 +92,14 @@ public class AssignmentTableModel extends AbstractTableModel {
                 // ignore invalid input
             }
         } else if (columnIndex == 4) {
+            try {
+                if (aValue != null && !String.valueOf(aValue).trim().isEmpty()) {
+                    a.setTerm(Integer.parseInt(String.valueOf(aValue).trim()));
+                }
+            } catch (NumberFormatException e) {
+                // ignore invalid input
+            }
+        } else if (columnIndex == 5) {
             if (aValue == null || String.valueOf(aValue).trim().isEmpty()) {
                 a.setDueDate(null);
             } else if (aValue instanceof java.util.Date d) {

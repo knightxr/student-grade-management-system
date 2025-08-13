@@ -68,9 +68,10 @@ public class DBSetup {
                 CREATE TABLE tblAssignments (
                     assignmentId  AUTOINCREMENT PRIMARY KEY,
                     courseId      INTEGER NOT NULL,
-                    title         TEXT(50),
-                    maxMarks      INTEGER,
-                    dueDate       DATE,
+                    title         TEXT(50) NOT NULL,
+                    maxMarks      INTEGER NOT NULL,
+                    term          INTEGER NOT NULL,
+                    dueDate       DATE    NOT NULL,
                     FOREIGN KEY (courseId) REFERENCES tblCourses(courseId)
                 )
             """);

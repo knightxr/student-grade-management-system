@@ -882,6 +882,9 @@ public class MainPage extends javax.swing.JFrame {
     }//GEN-LAST:event_jTextFieldSearchFocusLost
 
     private void jButtonSaveActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonSaveActionPerformed
+        if (jTable.isEditing()) {
+            jTable.getCellEditor().stopCellEditing();
+        }
         if (selectionMode && studentSelectionModel != null) {
             try {
                 int courseId = getSelectedCourseId();

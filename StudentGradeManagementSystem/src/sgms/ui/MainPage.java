@@ -99,34 +99,47 @@ public class MainPage extends javax.swing.JFrame {
             @Override
             public Component prepareRenderer(javax.swing.table.TableCellRenderer renderer, int row, int column) {
                 Component c = super.prepareRenderer(renderer, row, column);
+
+                Color base = (row % 2 == 0) ? Color.WHITE : new Color(235, 235, 235);
+                boolean colored = false;
+
                 if (selectionMode && MainPage.this.studentSelectionModel != null) {
                     int modelRow = convertRowIndexToModel(row);
                     if (MainPage.this.studentSelectionModel.isNewlySelected(modelRow)) {
                         c.setBackground(Color.GREEN);
+                        colored = true;
                     } else if (MainPage.this.studentSelectionModel.isDeselected(modelRow)) {
                         c.setBackground(Color.RED);
-                    } else {
-                        Color base = (row % 2 == 0) ? Color.WHITE : new Color(245, 245, 245);
-                        c.setBackground(isRowSelected(row) ? getSelectionBackground() : base);
+                        colored = true;
                     }
                 } else {
-                    Color base = (row % 2 == 0) ? Color.WHITE : new Color(245, 245, 245);
-                    if (attendanceModel != null && column == attendanceTodayColumn) {
-                        base = new Color(255, 255, 200);
+                    if (attendanceModel != null && column == attendanceTodayColumn && !isRowSelected(row)) {
+                        c.setBackground(new Color(255, 255, 200));
+                        colored = true;
                     }
                     if (courseModel != null) {
                         int modelRow = convertRowIndexToModel(row);
-                        if (courseModel.isMarkedForDeletion(modelRow)) {
-                            base = Color.RED;
+                        if (courseModel.isMarkedForDeletion(modelRow) && !isRowSelected(row)) {
+                            c.setBackground(Color.RED);
+                            colored = true;
                         }
                     } else if (assignmentModel != null) {
                         int modelRow = convertRowIndexToModel(row);
-                        if (assignmentModel.isMarkedForDeletion(modelRow)) {
-                            base = Color.RED;
+                        if (assignmentModel.isMarkedForDeletion(modelRow) && !isRowSelected(row)) {
+                            c.setBackground(Color.RED);
+                            colored = true;
                         }
                     }
-                    c.setBackground(isRowSelected(row) ? getSelectionBackground() : base);
                 }
+
+                if (!colored && !isRowSelected(row)) {
+                    c.setBackground(base);
+                }
+
+                if (c instanceof javax.swing.JComponent comp) {
+                    comp.setOpaque(true);
+                }
+
                 return c;
             }
         };

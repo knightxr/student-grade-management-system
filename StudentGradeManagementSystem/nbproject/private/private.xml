@@ -3,8 +3,10 @@
     <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="0"/>
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
         <group>
-            <file>file:/C:/Users/jacqu/Downloads/StudentGradeManagementSystem/src/sgms/ui/AssignmentTableModel.java</file>
+            <file>file:/C:/Users/jacqu/Downloads/StudentGradeManagementSystem/src/sgms/dao/impl/UcanaccessFinalGradeDAO.java</file>
+            <file>file:/C:/Users/jacqu/Downloads/StudentGradeManagementSystem/src/sgms/util/GradeCalculator.java</file>
             <file>file:/C:/Users/jacqu/Downloads/StudentGradeManagementSystem/src/sgms/util/ReportCardGenerator.java</file>
+            <file>file:/C:/Users/jacqu/Downloads/StudentGradeManagementSystem/test/util/GradeCalculatorTest.java</file>
             <file>file:/C:/Users/jacqu/Downloads/StudentGradeManagementSystem/src/sgms/ui/MainPage.java</file>
         </group>
     </open-files>

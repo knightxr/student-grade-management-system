@@ -39,12 +39,27 @@ public class UcanaccessFinalGradeDAO implements FinalGradeDAO {
                     Double term3 = clamp(getDouble(rs, "term3"));
                     Double term4 = clamp(getDouble(rs, "term4"));
                     Integer finalGrade = null;
-                    if (term1 != null || term2 != null || term3 != null || term4 != null) {
-                        double total = (term1 != null ? term1 : 0) * 0.125
-                                     + (term2 != null ? term2 : 0) * 0.25
-                                     + (term3 != null ? term3 : 0) * 0.125
-                                     + (term4 != null ? term4 : 0) * 0.5;
-                        finalGrade = (int) Math.round(Math.min(total, 100));
+                    double weighted = 0.0;
+                    double weight = 0.0;
+                    if (term1 != null) {
+                        weighted += term1 * 0.125;
+                        weight += 0.125;
+                    }
+                    if (term2 != null) {
+                        weighted += term2 * 0.25;
+                        weight += 0.25;
+                    }
+                    if (term3 != null) {
+                        weighted += term3 * 0.125;
+                        weight += 0.125;
+                    }
+                    if (term4 != null) {
+                        weighted += term4 * 0.5;
+                        weight += 0.5;
+                    }
+                    if (weight > 0.0) {
+                        double avg = weighted / weight;
+                        finalGrade = (int) Math.round(Math.min(avg, 100.0));
                     }
                     list.add(new FinalGrade(
                             rs.getString("firstName"),

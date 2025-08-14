@@ -1,18 +1,19 @@
 package sgms.util;
 
 import java.awt.Desktop;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDate;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
@@ -60,7 +61,7 @@ public final class ReportCardGenerator {
                     String xml = new String(data, StandardCharsets.UTF_8);
                     for (Map.Entry<String, String> e : mergeData.entrySet()) {
                         String field = Pattern.quote(e.getKey());
-                        String value = escapeXml(e.getValue());
+                        String value = escapeXml(e.getValue() == null ? "" : e.getValue());
 
                         String[] parts = value.split("\\n", -1);
                         StringBuilder run = new StringBuilder("<w:r>");
@@ -76,13 +77,13 @@ public final class ReportCardGenerator {
                         // Handle simple merge fields stored in <w:fldSimple>
                         String patternSimple =
                                 "<w:fldSimple[^>]*MERGEFIELD\\s+\\\"?" + field + "\\\"?[^>]*>.*?</w:fldSimple>";
-                        xml = xml.replaceAll(patternSimple, replacement);
+                        xml = xml.replaceAll(patternSimple, Matcher.quoteReplacement(replacement));
 
                         // Handle complex fields composed of w:fldChar and w:instrText
                         String patternComplex =
                                 "<w:fldChar[^>]*/><w:instrText[^>]*>[^<]*MERGEFIELD\\s+" +
                                 field + "[^<]*</w:instrText>.*?<w:fldChar[^>]*w:fldCharType=\\\"end\\\"[^>]*/>";
-                        xml = xml.replaceAll(patternComplex, replacement);
+                        xml = xml.replaceAll(patternComplex, Matcher.quoteReplacement(replacement));
 
                         // Replace the human-readable placeholder text such as «Field_Name»
                         String placeholder = "\u00AB" + e.getKey() + "\u00BB";
@@ -111,8 +112,16 @@ public final class ReportCardGenerator {
      * can review or export it to PDF.
      */
     public static void openFile(Path file) throws IOException {
+        openFile(file.toFile());
+    }
+
+    /**
+     * Variant accepting a {@link java.io.File} for callers compiled against
+     * older versions of this utility.
+     */
+    public static void openFile(File file) throws IOException {
         if (Desktop.isDesktopSupported()) {
-            Desktop.getDesktop().open(file.toFile());
+            Desktop.getDesktop().open(file);
         }
     }
 
@@ -135,25 +144,44 @@ public final class ReportCardGenerator {
         data.put("Date", now.toString());
 
         List<Course> courses = courseDAO.findByGrade(s.getGradeLevel());
-        Map<String, Course> courseByName = new HashMap<>();
-        for (Course c : courses) {
-            courseByName.put(c.getCourseName(), c);
-        }
 
+        // Pre‑populate merge fields for expected subjects so placeholders are
+        // always replaced even if a course or grades are missing.
         String[] names = {
             "English", "Afrikaans", "Mathematics", "Physics",
             "Business Studies", "Information Technology", "French", "Music"
         };
+        Map<String, String> normalised = new HashMap<>();
+        for (String name : names) {
+            String base = name.replace(' ', '_');
+            for (int i = 1; i <= 4; i++) {
+                data.put(base + "_T" + i, "");
+            }
+            data.put(base + "_Final", "");
+            data.put(base + "_Feedback", "");
+            normalised.put(normalize(name), name);
+        }
 
         int studentId = s.getStudentId();
         StringBuilder feedback = new StringBuilder();
 
-        for (String name : names) {
-            Course c = courseByName.get(name);
-            if (c == null) {
-                continue;
+        for (Course c : courses) {
+            String name = normalised.get(normalize(c.getCourseName()));
+            if (name == null) {
+                // attempt substring match for courses with extended names
+                String normCourse = normalize(c.getCourseName());
+                for (Map.Entry<String, String> e : normalised.entrySet()) {
+                    if (normCourse.contains(e.getKey())) {
+                        name = e.getValue();
+                        break;
+                    }
+                }
+            }
+            if (name == null) {
+                continue; // no placeholder for this course
             }
 
+            String base = name.replace(' ', '_');
             List<Assignment> assigns = assignmentDAO.findByCourse(c.getCourseId());
             Map<Integer, Map<Integer, Integer>> gradesByStudent = gradeDAO.findByCourse(c.getCourseId());
             Map<Integer, Integer> grades = gradesByStudent.getOrDefault(studentId, java.util.Collections.emptyMap());
@@ -168,36 +196,40 @@ public final class ReportCardGenerator {
                     termCount[term - 1]++;
                 }
             }
-            double total = 0;
-            int totalCount = 0;
+            Double[] termAvg = new Double[4];
             for (int i = 0; i < 4; i++) {
-                total += termSum[i];
-                totalCount += termCount[i];
-                String key = name.replace(' ', '_') + "_T" + (i + 1);
+                String key = base + "_T" + (i + 1);
                 if (termCount[i] > 0) {
-                    data.put(key, String.format(Locale.US, "%.2f", termSum[i] / termCount[i]));
+                    termAvg[i] = termSum[i] / termCount[i];
+                    data.put(key, String.valueOf(Math.round(termAvg[i])));
                 } else {
-                    data.put(key, "");
+                    termAvg[i] = null; // remains blank
                 }
             }
-            String finalKey = name.replace(' ', '_') + "_Final";
-            if (totalCount > 0) {
-                data.put(finalKey, String.format(Locale.US, "%.2f", total / totalCount));
-            } else {
-                data.put(finalKey, "");
+            Double finalAvg = GradeCalculator.calculateFinalGrade(termAvg[0], termAvg[1], termAvg[2], termAvg[3]);
+            if (finalAvg != null) {
+                data.put(base + "_Final", String.valueOf(Math.round(finalAvg)));
             }
 
             Map<Integer, String> fb = feedbackDAO.findByCourse(c.getCourseId());
             String note = fb.get(studentId);
-            if (note != null && !note.isBlank()) {
-                if (feedback.length() > 0) {
-                    feedback.append('\n');
+            if (note != null) {
+                note = note.trim();
+                if (!note.isEmpty()) {
+                    if (feedback.length() > 0) {
+                        feedback.append('\n');
+                    }
+                    feedback.append(note);
+                    data.put(base + "_Feedback", note);
                 }
-                feedback.append(name).append(": ").append(note);
             }
         }
-        data.put("Feedback", feedback.toString());
+        data.put("Feedback", feedback.toString().trim());
         return data;
+    }
+
+    private static String normalize(String s) {
+        return s.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]", "");
     }
 
     private static String escapeXml(String s) {

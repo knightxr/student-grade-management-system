@@ -33,14 +33,13 @@ public class StudentDAOTest {
         assertTrue("ID should be generated", s.getStudentId() > 0);
 
         // ── READ ─────────────────────────────────────────────────
-        Student found = dao.findById(s.getStudentId()).orElse(null);
+        Student found = dao.findById(s.getStudentId());
         assertNotNull("Student must be found", found);
         assertEquals("User", found.getLastName());
 
         // ── DELETE ───────────────────────────────────────────────
         assertTrue("Row should delete", dao.delete(s.getStudentId()));
-        assertFalse("Student should be gone",
-                    dao.findById(s.getStudentId()).isPresent());
+        assertNull("Student should be gone", dao.findById(s.getStudentId()));
     }
 
     @Test

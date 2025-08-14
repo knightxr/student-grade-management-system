@@ -3,31 +3,30 @@ package sgms.dao;
 import sgms.model.Student;
 import sgms.model.Course;
 import java.util.List;
-import java.util.Optional;
 
 public interface StudentDAO {
 
-    Student add(Student s) throws Exception;           // returns obj with new ID
+    Student add(Student s) throws Exception;           // returns object with new ID
     boolean update(Student s) throws Exception;        // true if row updated
     boolean delete(int studentId) throws Exception;
-    Optional<Student> findById(int studentId) throws Exception;
+    Student findById(int studentId) throws Exception;  // null if not found
     List<Student> findAll() throws Exception;
-    
-    /** Returns all students in the given grade level. */
+
+    // all students in a grade
     List<Student> findByGradeLevel(int gradeLevel) throws Exception;
 
-    /** Returns the distinct grade levels that currently exist in the DB. */
+    // all distinct grade levels currently in the database
     List<Integer> findGradeLevels() throws Exception;
 
-    /** Returns the distinct courses that currently exist in the DB. */
+    // all courses available
     List<Course> findCourses() throws Exception;
 
-    /** Links a student to a course. */
+    // link a student to a course
     boolean enrollStudentInCourse(int studentId, int courseId) throws Exception;
 
-    /** Returns all students enrolled in the given course. */
+    // students in a specific course
     List<Student> findByCourse(int courseId) throws Exception;
 
-    /** Removes a student from a specific course. */
+    // remove link between a student and a course
     boolean removeStudentFromCourse(int studentId, int courseId) throws Exception;
 }

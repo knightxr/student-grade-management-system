@@ -10,8 +10,12 @@ import java.time.temporal.TemporalAdjusters;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
 import java.util.Set;
+import java.io.IOException;
+import java.nio.file.Path;
 import javax.swing.JOptionPane;
+import javax.swing.SwingWorker;
 import javax.swing.JTable;
 import javax.swing.RowSorter;
 import javax.swing.SortOrder;
@@ -41,6 +45,7 @@ import sgms.model.Course;
 import sgms.model.FinalGrade;
 import sgms.model.Student;
 import sgms.util.SearchUtil;
+import sgms.util.ReportCardGenerator;
 import sgms.ui.AssignmentTableModel;
 
 /**
@@ -68,6 +73,8 @@ public class MainPage extends javax.swing.JFrame {
     private int attendanceTodayColumn = -1;
     private final FeedbackDAO feedbackDAO = new UcanaccessFeedbackDAO();
     private final AssignmentDAO assignmentDAO = new UcanaccessAssignmentDAO();
+    private final GradeDAO gradeDAO = new UcanaccessGradeDAO();
+    private final AttendanceDAO attendanceDAO = new UcanaccessAttendanceDAO();
     
     private void setActiveButton(javax.swing.JButton active) {
         Color defaultColor = Color.WHITE;
@@ -304,6 +311,11 @@ public class MainPage extends javax.swing.JFrame {
         jPanel2.add(jButtonStudentFeedback, new org.netbeans.lib.awtextra.AbsoluteConstraints(75, 467, 150, 36));
 
         jButtonCreateReportCard.setText("Create Report Card");
+        jButtonCreateReportCard.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButtonCreateReportCardActionPerformed(evt);
+            }
+        });
         jPanel2.add(jButtonCreateReportCard, new org.netbeans.lib.awtextra.AbsoluteConstraints(75, 531, 150, 36));
 
         jButtonAttendance.setText("Attendance");
@@ -1179,6 +1191,36 @@ public class MainPage extends javax.swing.JFrame {
         loadAssignmentsForSelectedCourse();
     }//GEN-LAST:event_jButtonManageAssignmentsActionPerformed
 
+    private void jButtonCreateReportCardActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonCreateReportCardActionPerformed
+        Student selected = getSelectedStudent();
+        if (selected == null) {
+            return;
+        }
+        jButtonCreateReportCard.setEnabled(false);
+        new SwingWorker<Void, Void>() {
+            @Override
+            protected Void doInBackground() throws Exception {
+                Map<String, String> data = ReportCardGenerator.buildData(selected,
+                        courseDAO, assignmentDAO, gradeDAO, feedbackDAO);
+                Path docx = ReportCardGenerator.generateDocx(data);
+                ReportCardGenerator.openFile(docx);
+                return null;
+            }
+
+            @Override
+            protected void done() {
+                jButtonCreateReportCard.setEnabled(true);
+                try {
+                    get();
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(MainPage.this,
+                            "Unable to create report card: " + ex.getMessage(),
+                            "Error", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        }.execute();
+    }//GEN-LAST:event_jButtonCreateReportCardActionPerformed
+
     /**
      * @param args the command line arguments
      */
@@ -1289,6 +1331,20 @@ private void loadCourses() {
             }
         }
         return 0;
+    }
+    
+    private Student getSelectedStudent() {
+        if (studentTableModel == null) {
+            JOptionPane.showMessageDialog(this, "Please view students and select a record first.");
+            return null;
+        }
+        int viewRow = jTable.getSelectedRow();
+        if (viewRow < 0) {
+            JOptionPane.showMessageDialog(this, "Please select a student from the table.");
+            return null;
+        }
+        int modelRow = jTable.convertRowIndexToModel(viewRow);
+        return studentTableModel.getStudent(modelRow);
     }
     
     private void loadCoursesForSelectedGrade() {

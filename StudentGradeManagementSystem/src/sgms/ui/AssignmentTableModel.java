@@ -137,6 +137,9 @@ public class AssignmentTableModel extends AbstractTableModel {
     }
 
     public boolean isMarkedForDeletion(int row) {
+        if (row < 0 || row >= assignments.size()) {
+            return false;
+        }
         return deletedIds.contains(assignments.get(row).getAssignmentId());
     }
 

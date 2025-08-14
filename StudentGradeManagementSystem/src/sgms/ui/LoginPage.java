@@ -1,4 +1,5 @@
 package sgms.ui;
+import javax.swing.JOptionPane;
 import sgms.util.CredentialManager;
 
 /**
@@ -254,7 +255,10 @@ public class LoginPage extends javax.swing.JFrame {
      * Displays a help guide when the 'Need Help' button is clicked.
      */
     private void jButtonNeedHelpActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonNeedHelpActionPerformed
-
+        String message = "Enter your username and password then click Sign in.\n"
+                + "Use Create Account to register a new user if you don't have credentials.\n"
+                + "Forgot Password lets you reset your password with the administrator password.";
+        JOptionPane.showMessageDialog(this, message, "Login Help", JOptionPane.INFORMATION_MESSAGE);
     }//GEN-LAST:event_jButtonNeedHelpActionPerformed
 
     /**

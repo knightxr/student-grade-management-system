@@ -43,6 +43,7 @@ public class SignupPage extends javax.swing.JFrame {
         jLabelErrorText = new javax.swing.JLabel();
         btnBack = new javax.swing.JButton();
         jLabelCreateedByJacquesSmit = new javax.swing.JLabel();
+        jButtonNeedHelp = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setResizable(false);
@@ -126,6 +127,15 @@ public class SignupPage extends javax.swing.JFrame {
 
         jLabelCreateedByJacquesSmit.setText("Created By Jacques Smit");
 
+        jButtonNeedHelp.setText("Need help?");
+        jButtonNeedHelp.setBorderPainted(false);
+        jButtonNeedHelp.setContentAreaFilled(false);
+        jButtonNeedHelp.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButtonNeedHelpActionPerformed(evt);
+            }
+        });
+
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
@@ -164,11 +174,14 @@ public class SignupPage extends javax.swing.JFrame {
                             .addComponent(jLabelUsername, javax.swing.GroupLayout.PREFERRED_SIZE, 86, javax.swing.GroupLayout.PREFERRED_SIZE)))
                     .addGroup(layout.createSequentialGroup()
                         .addGap(608, 608, 608)
-                        .addComponent(btnCreateAccount))
-                    .addGroup(layout.createSequentialGroup()
-                        .addGap(36, 36, 36)
-                        .addComponent(jLabelCreateedByJacquesSmit)))
+                        .addComponent(btnCreateAccount)))
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+            .addGroup(layout.createSequentialGroup()
+                .addGap(36, 36, 36)
+                .addComponent(jLabelCreateedByJacquesSmit)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addComponent(jButtonNeedHelp)
+                .addGap(35, 35, 35))
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -203,9 +216,11 @@ public class SignupPage extends javax.swing.JFrame {
                 .addComponent(jLabelErrorText, javax.swing.GroupLayout.PREFERRED_SIZE, 26, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(31, 31, 31)
                 .addComponent(btnCreateAccount, javax.swing.GroupLayout.PREFERRED_SIZE, 36, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(89, 89, 89)
-                .addComponent(jLabelCreateedByJacquesSmit)
-                .addGap(27, 27, 27))
+                .addGap(84, 84, 84)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabelCreateedByJacquesSmit)
+                    .addComponent(jButtonNeedHelp))
+                .addGap(21, 21, 21))
         );
 
         pack();
@@ -276,6 +291,13 @@ public class SignupPage extends javax.swing.JFrame {
 
     }//GEN-LAST:event_btnBackActionPerformed
 
+    private void jButtonNeedHelpActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonNeedHelpActionPerformed
+        String message = "Enter your name, desired username and password.\n"
+                + "An administrator password is required to authorise the account.\n"
+                + "Click Create Account to finish or Back to return to the login screen.";
+        JOptionPane.showMessageDialog(this, message, "Signup Help", JOptionPane.INFORMATION_MESSAGE);
+    }//GEN-LAST:event_jButtonNeedHelpActionPerformed
+
     /**
      * @param args the command line arguments
      */
@@ -317,6 +339,7 @@ public class SignupPage extends javax.swing.JFrame {
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton btnBack;
     private javax.swing.JButton btnCreateAccount;
+    private javax.swing.JButton jButtonNeedHelp;
     private javax.swing.JLabel jLabelAdministratorPassword;
     private javax.swing.JLabel jLabelCreateAnAccount;
     private javax.swing.JLabel jLabelCreateedByJacquesSmit;

@@ -44,6 +44,7 @@ public class ForgotPasswordPage extends javax.swing.JFrame {
         jLabelLoginError = new javax.swing.JLabel();
         btnBack = new javax.swing.JButton();
         jLabelCreateedByJacquesSmit = new javax.swing.JLabel();
+        jButtonNeedHelp = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setSize(new java.awt.Dimension(1366, 768));
@@ -116,6 +117,15 @@ public class ForgotPasswordPage extends javax.swing.JFrame {
 
         jLabelCreateedByJacquesSmit.setText("Created By Jacques Smit");
 
+        jButtonNeedHelp.setText("Need help?");
+        jButtonNeedHelp.setBorderPainted(false);
+        jButtonNeedHelp.setContentAreaFilled(false);
+        jButtonNeedHelp.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButtonNeedHelpActionPerformed(evt);
+            }
+        });
+
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
@@ -148,11 +158,14 @@ public class ForgotPasswordPage extends javax.swing.JFrame {
                         .addGap(49, 49, 49)
                         .addComponent(btnBack)
                         .addGap(260, 260, 260)
-                        .addComponent(jLabelLillyHouseSchoolLibrary))
-                    .addGroup(layout.createSequentialGroup()
-                        .addGap(41, 41, 41)
-                        .addComponent(jLabelCreateedByJacquesSmit)))
+                        .addComponent(jLabelLillyHouseSchoolLibrary)))
                 .addContainerGap(361, Short.MAX_VALUE))
+            .addGroup(layout.createSequentialGroup()
+                .addGap(41, 41, 41)
+                .addComponent(jLabelCreateedByJacquesSmit)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addComponent(jButtonNeedHelp)
+                .addGap(36, 36, 36))
         );
 
         layout.linkSize(javax.swing.SwingConstants.HORIZONTAL, new java.awt.Component[] {jPasswordFieldNewPassword, jTextFieldUsername});
@@ -187,9 +200,11 @@ public class ForgotPasswordPage extends javax.swing.JFrame {
                 .addComponent(jLabelLoginError, javax.swing.GroupLayout.PREFERRED_SIZE, 32, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(18, 18, 18)
                 .addComponent(btnResetPassword, javax.swing.GroupLayout.PREFERRED_SIZE, 36, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 140, Short.MAX_VALUE)
-                .addComponent(jLabelCreateedByJacquesSmit)
-                .addGap(27, 27, 27))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 135, Short.MAX_VALUE)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabelCreateedByJacquesSmit)
+                    .addComponent(jButtonNeedHelp))
+                .addGap(21, 21, 21))
         );
 
         layout.linkSize(javax.swing.SwingConstants.VERTICAL, new java.awt.Component[] {jPasswordFieldNewPassword, jTextFieldUsername});
@@ -251,6 +266,12 @@ public class ForgotPasswordPage extends javax.swing.JFrame {
         dispose();
     }//GEN-LAST:event_btnBackActionPerformed
 
+    private void jButtonNeedHelpActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonNeedHelpActionPerformed
+        String message = "Enter your username, a new password and the administrator password.\n"
+                + "Click Reset password to apply the change or Back to return to the login screen.";
+        JOptionPane.showMessageDialog(this, message, "Reset Password Help", JOptionPane.INFORMATION_MESSAGE);
+    }//GEN-LAST:event_jButtonNeedHelpActionPerformed
+
     /**
      * @param args the command line arguments
      */
@@ -290,6 +311,7 @@ public class ForgotPasswordPage extends javax.swing.JFrame {
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton btnBack;
     private javax.swing.JButton btnResetPassword;
+    private javax.swing.JButton jButtonNeedHelp;
     private javax.swing.JLabel jLabelAdministratorPassword;
     private javax.swing.JLabel jLabelCreateedByJacquesSmit;
     private javax.swing.JLabel jLabelEnterRequiredDetails;

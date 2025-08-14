@@ -75,6 +75,7 @@ public class MainPage extends javax.swing.JFrame {
     private final AssignmentDAO assignmentDAO = new UcanaccessAssignmentDAO();
     private final GradeDAO gradeDAO = new UcanaccessGradeDAO();
     private final AttendanceDAO attendanceDAO = new UcanaccessAttendanceDAO();
+    private javax.swing.JButton lastActionButton;
     
     private void setActiveButton(javax.swing.JButton active) {
         Color defaultColor = Color.WHITE;
@@ -93,6 +94,35 @@ public class MainPage extends javax.swing.JFrame {
                 b.setBackground(b == active ? activeColor : defaultColor);
                 b.setOpaque(true);
                 b.setBorderPainted(false);
+            }
+        }
+    }
+    
+    private void installContextTracking() {
+        java.awt.event.ActionListener tracker = e -> {
+            Object src = e.getSource();
+            if (src instanceof javax.swing.JButton btn && btn != jButtonHelp) {
+                lastActionButton = btn;
+            }
+        };
+        javax.swing.JButton[] buttons = {
+            jButtonViewStudents,
+            jButtonViewStudentGrades,
+            jButtonViewFinalGrades,
+            jButtonAttendance,
+            jButtonStudentFeedback,
+            jButtonManageCourses,
+            jButtonManageAssignments,
+            jButtonCreateReportCard,
+            jButtonAdd,
+            jButtonDelete,
+            jButtonSave,
+            jButtonEdit,
+            jButtonSearch
+        };
+        for (javax.swing.JButton b : buttons) {
+            if (b != null) {
+                b.addActionListener(tracker);
             }
         }
     }
@@ -179,6 +209,7 @@ public class MainPage extends javax.swing.JFrame {
                 }
             }
         });
+        installContextTracking();
     }
 
     /**
@@ -857,7 +888,50 @@ public class MainPage extends javax.swing.JFrame {
     }//GEN-LAST:event_jTextFieldSearchActionPerformed
 
     private void jButtonHelpActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonHelpActionPerformed
-        // TODO add your handling code here:
+        String message;
+        if (lastActionButton == null) {
+            message = "Press a button first to get contextual help. "
+                    + "The table supports sorting by clicking column headers and filtering with the Search box.";
+        } else if (lastActionButton == jButtonViewStudents) {
+            message = "View Students shows all learners in the selected course.\n"
+                    + "Use the table to sort columns, filter with the Search box and select rows to edit or delete.";
+        } else if (lastActionButton == jButtonViewStudentGrades) {
+            message = "View Student Grades lists assignment marks per student.\n"
+                    + "Sort columns to compare results, use Search to find a student and double-click a grade cell to edit when editing is enabled.";
+        } else if (lastActionButton == jButtonViewFinalGrades) {
+            message = "View Final Grades displays overall grades for each student.\n"
+                    + "Columns can be sorted and filtered just like other tables.";
+        } else if (lastActionButton == jButtonAttendance) {
+            message = "Attendance lets you mark daily presence.\n"
+                    + "The yellow column is today—click cells to toggle present or absent, then press Save to store changes.";
+        } else if (lastActionButton == jButtonStudentFeedback) {
+            message = "Student Feedback allows adding or editing comments.\n"
+                    + "Click a comment cell to view the full text and use the table tools to sort or search.";
+        } else if (lastActionButton == jButtonManageCourses) {
+            message = "Manage Courses creates, edits or deletes courses.\n"
+                    + "Rows marked in red are flagged for deletion until you Save.";
+        } else if (lastActionButton == jButtonManageAssignments) {
+            message = "Manage Assignments works like courses but for assignments.\n"
+                    + "Use Add to create new rows and Save to commit changes.";
+        } else if (lastActionButton == jButtonCreateReportCard) {
+            message = "Create Report Card generates a PDF for the selected student.\n"
+                    + "Select a student row first, then click this button.";
+        } else if (lastActionButton == jButtonAdd) {
+            message = "Add inserts a new blank row into the current table so you can capture a new record.";
+        } else if (lastActionButton == jButtonDelete) {
+            message = "Delete removes the selected record or marks it in red for deletion until you Save.";
+        } else if (lastActionButton == jButtonSave) {
+            message = "Save commits all table edits and deletions to the database.";
+        } else if (lastActionButton == jButtonEdit) {
+            message = "Edit unlocks the selected row so its cells can be modified.";
+        } else if (lastActionButton == jButtonSearch) {
+            message = "Search filters the table according to the text entered in the Search box.\n"
+                    + "Click column headers to sort the results.";
+        } else {
+            message = "Press a button first to get contextual help. "
+                    + "The table supports sorting by clicking column headers and filtering with the Search box.";
+        }
+        JOptionPane.showMessageDialog(this, message, "Help", JOptionPane.INFORMATION_MESSAGE);
     }//GEN-LAST:event_jButtonHelpActionPerformed
 
     private void jButtonLogoutActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonLogoutActionPerformed

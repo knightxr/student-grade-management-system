@@ -3,7 +3,7 @@ package sgms.dao.impl;
 import sgms.dao.StudentDAO;
 import sgms.model.Student;
 import sgms.model.Course;
-import sgms.util.DBManager;
+import sgms.dao.Db;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -19,7 +19,7 @@ public class UcanaccessStudentDAO implements StudentDAO {
     @Override
     public Student add(Student s) throws SQLException {
         String sql = "INSERT INTO tblStudents(firstName, lastName, gradeLevel) VALUES (?,?,?)";
-        try (Connection c = DBManager.get();
+        try (Connection c = Db.get();
              PreparedStatement ps = c.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
             ps.setString(1, s.getFirstName());
@@ -41,7 +41,7 @@ public class UcanaccessStudentDAO implements StudentDAO {
     @Override
     public boolean update(Student s) throws SQLException {
         String sql = "UPDATE tblStudents SET firstName=?, lastName=?, gradeLevel=? WHERE studentId=?";
-        try (Connection c = DBManager.get(); PreparedStatement ps = c.prepareStatement(sql)) {
+        try (Connection c = Db.get(); PreparedStatement ps = c.prepareStatement(sql)) {
             ps.setString(1, s.getFirstName());
             ps.setString(2, s.getLastName());
             ps.setInt(3, s.getGradeLevel());
@@ -55,7 +55,7 @@ public class UcanaccessStudentDAO implements StudentDAO {
     public boolean delete(int id) throws SQLException {
         String delEnrollments = "DELETE FROM tblStudentCourses WHERE studentId=?";
         String delStudent = "DELETE FROM tblStudents WHERE studentId=?";
-        try (Connection c = DBManager.get();
+        try (Connection c = Db.get();
              PreparedStatement psEnroll = c.prepareStatement(delEnrollments);
              PreparedStatement psStudent = c.prepareStatement(delStudent)) {
 
@@ -72,7 +72,7 @@ public class UcanaccessStudentDAO implements StudentDAO {
     @Override
     public Student findById(int id) throws SQLException {
         String sql = "SELECT * FROM tblStudents WHERE studentId=?";
-        try (Connection c = DBManager.get(); PreparedStatement ps = c.prepareStatement(sql)) {
+        try (Connection c = Db.get(); PreparedStatement ps = c.prepareStatement(sql)) {
             ps.setInt(1, id);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
@@ -87,7 +87,7 @@ public class UcanaccessStudentDAO implements StudentDAO {
     @Override
     public List<Student> findAll() throws SQLException {
         String sql = "SELECT * FROM tblStudents ORDER BY lastName";
-        try (Connection c = DBManager.get(); Statement st = c.createStatement(); ResultSet rs = st.executeQuery(sql)) {
+        try (Connection c = Db.get(); Statement st = c.createStatement(); ResultSet rs = st.executeQuery(sql)) {
             List<Student> list = new ArrayList<>();
             while (rs.next()) {
                 list.add(map(rs));
@@ -100,7 +100,7 @@ public class UcanaccessStudentDAO implements StudentDAO {
     @Override
     public List<Student> findByGradeLevel(int gradeLevel) throws SQLException {
         String sql = "SELECT * FROM tblStudents WHERE gradeLevel = ? ORDER BY lastName";
-        try (Connection c = DBManager.get(); PreparedStatement ps = c.prepareStatement(sql)) {
+        try (Connection c = Db.get(); PreparedStatement ps = c.prepareStatement(sql)) {
             ps.setInt(1, gradeLevel);
             try (ResultSet rs = ps.executeQuery()) {
                 List<Student> list = new ArrayList<>();
@@ -116,7 +116,7 @@ public class UcanaccessStudentDAO implements StudentDAO {
     @Override
     public List<Integer> findGradeLevels() throws SQLException {
         String sql = "SELECT DISTINCT gradeLevel FROM tblStudents ORDER BY gradeLevel";
-        try (Connection c = DBManager.get(); Statement st = c.createStatement(); ResultSet rs = st.executeQuery(sql)) {
+        try (Connection c = Db.get(); Statement st = c.createStatement(); ResultSet rs = st.executeQuery(sql)) {
             List<Integer> grades = new ArrayList<>();
             while (rs.next()) {
                 grades.add(rs.getInt("gradeLevel"));
@@ -129,7 +129,7 @@ public class UcanaccessStudentDAO implements StudentDAO {
     @Override
     public List<Course> findCourses() throws SQLException {
         String sql = "SELECT courseId, courseCode, courseName, gradeLevel FROM tblCourses ORDER BY courseName";
-        try (Connection c = DBManager.get(); Statement st = c.createStatement(); ResultSet rs = st.executeQuery(sql)) {
+        try (Connection c = Db.get(); Statement st = c.createStatement(); ResultSet rs = st.executeQuery(sql)) {
             List<Course> courses = new ArrayList<>();
             while (rs.next()) {
                 courses.add(new Course(rs.getInt("courseId"),
@@ -145,7 +145,7 @@ public class UcanaccessStudentDAO implements StudentDAO {
     @Override
     public boolean enrollStudentInCourse(int studentId, int courseId) throws SQLException {
         String sql = "INSERT INTO tblStudentCourses(studentId, courseId) VALUES (?, ?)";
-        try (Connection c = DBManager.get(); PreparedStatement ps = c.prepareStatement(sql)) {
+        try (Connection c = Db.get(); PreparedStatement ps = c.prepareStatement(sql)) {
             ensureEnrollmentTableExists(c);
             ps.setInt(1, studentId);
             ps.setInt(2, courseId);
@@ -157,7 +157,7 @@ public class UcanaccessStudentDAO implements StudentDAO {
     @Override
     public List<Student> findByCourse(int courseId) throws SQLException {
         String sql = "SELECT s.* FROM tblStudents s JOIN tblStudentCourses sc ON s.studentId = sc.studentId WHERE sc.courseId = ? ORDER BY s.lastName";
-        try (Connection c = DBManager.get(); PreparedStatement ps = c.prepareStatement(sql)) {
+        try (Connection c = Db.get(); PreparedStatement ps = c.prepareStatement(sql)) {
             ensureEnrollmentTableExists(c);
             ps.setInt(1, courseId);
             try (ResultSet rs = ps.executeQuery()) {
@@ -174,7 +174,7 @@ public class UcanaccessStudentDAO implements StudentDAO {
     @Override
     public boolean removeStudentFromCourse(int studentId, int courseId) throws SQLException {
         String sql = "DELETE FROM tblStudentCourses WHERE studentId = ? AND courseId = ?";
-        try (Connection c = DBManager.get(); PreparedStatement ps = c.prepareStatement(sql)) {
+        try (Connection c = Db.get(); PreparedStatement ps = c.prepareStatement(sql)) {
             ensureEnrollmentTableExists(c);
             ps.setInt(1, studentId);
             ps.setInt(2, courseId);

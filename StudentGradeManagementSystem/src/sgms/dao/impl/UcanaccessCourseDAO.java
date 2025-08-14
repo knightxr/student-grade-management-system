@@ -2,7 +2,7 @@ package sgms.dao.impl;
 
 import sgms.dao.CourseDAO;
 import sgms.model.Course;
-import sgms.util.DBManager;
+import sgms.dao.Db;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -19,7 +19,7 @@ public class UcanaccessCourseDAO implements CourseDAO {
                 "COUNT(sc.studentId) AS studentCount " +
                 "FROM tblCourses c LEFT JOIN tblStudentCourses sc ON c.courseId = sc.courseId " +
                 "WHERE c.gradeLevel = ? GROUP BY c.courseId, c.courseCode, c.courseName, c.gradeLevel ORDER BY c.courseName";
-        try (Connection c = DBManager.get(); PreparedStatement ps = c.prepareStatement(sql)) {
+        try (Connection c = Db.get(); PreparedStatement ps = c.prepareStatement(sql)) {
             ps.setInt(1, gradeLevel);
             try (ResultSet rs = ps.executeQuery()) {
                 List<Course> list = new ArrayList<>();
@@ -39,7 +39,7 @@ public class UcanaccessCourseDAO implements CourseDAO {
     @Override
     public Course add(Course c) throws SQLException {
         final String sql = "INSERT INTO tblCourses(courseCode, courseName, gradeLevel) VALUES (?, ?, ?)";
-        try (Connection conn = DBManager.get(); PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+        try (Connection conn = Db.get(); PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             ps.setString(1, c.getCourseCode());
             ps.setString(2, c.getCourseName());
             ps.setInt(3, c.getGradeLevel());
@@ -56,7 +56,7 @@ public class UcanaccessCourseDAO implements CourseDAO {
     @Override
     public boolean update(Course c) throws SQLException {
         final String sql = "UPDATE tblCourses SET courseName = ? WHERE courseId = ?";
-        try (Connection conn = DBManager.get(); PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = Db.get(); PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, c.getCourseName());
             ps.setInt(2, c.getCourseId());
             return ps.executeUpdate() > 0;
@@ -66,7 +66,7 @@ public class UcanaccessCourseDAO implements CourseDAO {
     @Override
     public boolean delete(int courseId) throws SQLException {
         final String sql = "DELETE FROM tblCourses WHERE courseId = ?";
-        try (Connection conn = DBManager.get(); PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = Db.get(); PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, courseId);
             return ps.executeUpdate() > 0;
         }

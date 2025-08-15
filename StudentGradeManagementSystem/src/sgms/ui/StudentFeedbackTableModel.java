@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import javax.swing.table.AbstractTableModel;
 import sgms.model.Student;
+import sgms.dao.FeedbackDAO;
 
 /** Table model for displaying student feedback notes. */
 public class StudentFeedbackTableModel extends AbstractTableModel {
@@ -18,6 +19,15 @@ public class StudentFeedbackTableModel extends AbstractTableModel {
     public StudentFeedbackTableModel(List<Student> students, Map<Integer, String> comments) {
         this.students = new ArrayList<>(students);
         this.comments = new HashMap<>(comments);
+    }
+
+    /**
+     * Backward-compatible constructor that accepts a DAO parameter which is not
+     * used by the model. Delegates to the primary constructor.
+     */
+    public StudentFeedbackTableModel(List<Student> students, Map<Integer, String> comments,
+                                     FeedbackDAO feedbackDAO) {
+        this(students, comments);
     }
 
     @Override
@@ -38,19 +48,23 @@ public class StudentFeedbackTableModel extends AbstractTableModel {
     @Override
     public Object getValueAt(int rowIndex, int columnIndex) {
         Student s = students.get(rowIndex);
-        return switch (columnIndex) {
-            case 0 -> s.getFirstName();
-            case 1 -> s.getLastName();
-            case 2 -> {
+        switch (columnIndex) {
+            case 0:
+                return s.getFirstName();
+            case 1:
+                return s.getLastName();
+            case 2:
                 String note = comments.get(s.getStudentId());
-                if (note == null) note = "";
+                if (note == null) {
+                    note = "";
+                }
                 if (note.length() > PREVIEW_LENGTH) {
                     note = note.substring(0, PREVIEW_LENGTH) + "...";
                 }
-                yield note;
-            }
-            default -> null;
-        };
+                return note;
+            default:
+                return null;
+        }
     }
 
     @Override

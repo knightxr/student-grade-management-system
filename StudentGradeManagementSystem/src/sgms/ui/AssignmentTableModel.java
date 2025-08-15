@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import sgms.dao.AssignmentDAO;
 
 /**
  * Table model representing assignments for a course.
@@ -20,6 +21,14 @@ public class AssignmentTableModel extends AbstractTableModel {
 
     public AssignmentTableModel(List<Assignment> list) {
         this.assignments = new ArrayList<>(list);
+    }
+
+    /**
+     * Backward-compatible constructor that accepts a DAO parameter which is no
+     * longer used by the model. Delegates to the primary constructor.
+     */
+    public AssignmentTableModel(List<Assignment> list, AssignmentDAO assignmentDAO) {
+        this(list);
     }
 
     @Override
@@ -39,12 +48,18 @@ public class AssignmentTableModel extends AbstractTableModel {
 
     @Override
     public Class<?> getColumnClass(int columnIndex) {
-        return switch (columnIndex) {
-            case 0 -> Boolean.class;
-            case 1, 3, 4 -> Integer.class;
-            case 5 -> Date.class;
-            default -> String.class;
-        };
+        switch (columnIndex) {
+            case 0:
+                return Boolean.class;
+            case 1:
+            case 3:
+            case 4:
+                return Integer.class;
+            case 5:
+                return Date.class;
+            default:
+                return String.class;
+        }
     }
 
     @Override
@@ -55,15 +70,22 @@ public class AssignmentTableModel extends AbstractTableModel {
     @Override
     public Object getValueAt(int rowIndex, int columnIndex) {
         Assignment a = assignments.get(rowIndex);
-        return switch (columnIndex) {
-            case 0 -> deletedIds.contains(a.getAssignmentId());
-            case 1 -> a.getAssignmentId();
-            case 2 -> a.getTitle();
-            case 3 -> a.getMaxMarks();
-            case 4 -> a.getTerm();
-            case 5 -> a.getDueDate();
-            default -> null;
-        };
+        switch (columnIndex) {
+            case 0:
+                return deletedIds.contains(a.getAssignmentId());
+            case 1:
+                return a.getAssignmentId();
+            case 2:
+                return a.getTitle();
+            case 3:
+                return a.getMaxMarks();
+            case 4:
+                return a.getTerm();
+            case 5:
+                return a.getDueDate();
+            default:
+                return null;
+        }
     }
 
     @Override
@@ -102,7 +124,8 @@ public class AssignmentTableModel extends AbstractTableModel {
         } else if (columnIndex == 5) {
             if (aValue == null || String.valueOf(aValue).trim().isEmpty()) {
                 a.setDueDate(null);
-            } else if (aValue instanceof java.util.Date d) {
+            } else if (aValue instanceof java.util.Date) {
+                java.util.Date d = (java.util.Date) aValue;
                 a.setDueDate(new Date(d.getTime()));
             } else {
                 try {

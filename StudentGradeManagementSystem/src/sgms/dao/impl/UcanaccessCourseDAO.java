@@ -73,4 +73,23 @@ public class UcanaccessCourseDAO implements CourseDAO {
             return ps.executeUpdate() > 0;
         }
     }
+
+    @Override
+    public Course findByCode(String code) throws SQLException {
+        final String sql = "SELECT courseId, courseCode, courseName, gradeLevel FROM tblCourses WHERE courseCode = ?";
+        try (Connection conn = Db.get(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, code);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return new Course(
+                            rs.getInt("courseId"),
+                            rs.getString("courseCode"),
+                            rs.getString("courseName"),
+                            rs.getInt("gradeLevel"),
+                            0);
+                }
+            }
+        }
+        return null;
+    }
 }

@@ -2,12 +2,13 @@ package sgms.ui;
 
 import sgms.model.Assignment;
 import sgms.model.Student;
-import sgms.dao.GradeDAO;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import javax.swing.JOptionPane;
+import sgms.dao.GradeDAO;
+import sgms.service.ValidationService;
 import javax.swing.table.AbstractTableModel;
 
 /**
@@ -18,17 +19,26 @@ public class StudentGradesTableModel extends AbstractTableModel {
     private final List<Student> students;
     private final List<Assignment> assignments;
     private final Map<Integer, Map<Integer, Integer>> grades; // studentId -> (assignmentId -> mark)
-    private final GradeDAO gradeDAO;
 
     public StudentGradesTableModel(List<Student> students, List<Assignment> assignments,
-                                   Map<Integer, Map<Integer, Integer>> grades, GradeDAO gradeDAO) {
+                                   Map<Integer, Map<Integer, Integer>> grades) {
         this.students = new ArrayList<>(students);
         this.assignments = new ArrayList<>(assignments);
         this.grades = new HashMap<>();
         for (Student s : students) {
             this.grades.put(s.getStudentId(), grades.getOrDefault(s.getStudentId(), new HashMap<>()));
         }
-        this.gradeDAO = gradeDAO;
+    }
+
+    /**
+     * Backward-compatible constructor that ignores the DAO parameter and
+     * delegates to the primary constructor. The model no longer accesses the
+     * database directly.
+     */
+    public StudentGradesTableModel(List<Student> students, List<Assignment> assignments,
+                                   Map<Integer, Map<Integer, Integer>> grades,
+                                   GradeDAO gradeDAO) {
+        this(students, assignments, grades);
     }
 
     @Override
@@ -71,17 +81,17 @@ public class StudentGradesTableModel extends AbstractTableModel {
         int assignmentId = assignments.get(columnIndex - 1).getAssignmentId();
         try {
             int mark = Integer.parseInt(String.valueOf(aValue).trim());
-            if (mark < 0 || mark > 100) {
-                JOptionPane.showMessageDialog(null, "Grade must be between 0 and 100.");
+            Assignment a = assignments.get(columnIndex - 1);
+            Integer max = a.getMaxMarks();
+            int upper = max != null ? max : 100;
+            if (!ValidationService.isIntInRange(mark, 0, upper)) {
+                JOptionPane.showMessageDialog(null, "Grade must be between 0 and " + upper + ".");
                 return;
             }
-            gradeDAO.upsert(s.getStudentId(), assignmentId, mark);
             grades.computeIfAbsent(s.getStudentId(), k -> new HashMap<>()).put(assignmentId, mark);
             fireTableCellUpdated(rowIndex, columnIndex);
         } catch (NumberFormatException ex) {
             JOptionPane.showMessageDialog(null, "Grade must be a number between 0 and 100.");
-        } catch (Exception ex) {
-            // ignore DB errors for simplicity
         }
     }
 
@@ -101,5 +111,9 @@ public class StudentGradesTableModel extends AbstractTableModel {
             map.remove(a.getAssignmentId());
         }
         fireTableStructureChanged();
+    }
+
+    public Map<Integer, Map<Integer, Integer>> getGrades() {
+        return grades;
     }
 }

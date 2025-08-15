@@ -7,6 +7,7 @@ import java.time.format.TextStyle;
 import java.util.*;
 import javax.swing.table.AbstractTableModel;
 import java.util.Locale;
+import sgms.dao.AttendanceDAO;
 
 /**
  * Table model for displaying and editing student attendance for a week.
@@ -30,6 +31,16 @@ public class AttendanceTableModel extends AbstractTableModel {
             Map<LocalDate, Boolean> map = attendance.getOrDefault(s.getStudentId(), Collections.emptyMap());
             this.attendance.put(s.getStudentId(), new HashMap<>(map));
         }
+    }
+
+    /**
+     * Backward-compatible constructor accepting a DAO parameter that is
+     * ignored. Delegates to the primary constructor.
+     */
+    public AttendanceTableModel(List<Student> students, LocalDate startOfWeek,
+                                Map<Integer, Map<LocalDate, Boolean>> attendance,
+                                AttendanceDAO attendanceDAO) {
+        this(students, startOfWeek, attendance);
     }
 
     @Override

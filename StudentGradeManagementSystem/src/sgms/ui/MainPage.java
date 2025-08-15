@@ -44,6 +44,7 @@ import sgms.model.Assignment;
 import sgms.model.Course;
 import sgms.model.FinalGrade;
 import sgms.model.Student;
+import sgms.service.ValidationService;
 import sgms.util.SearchUtil;
 import sgms.util.ReportCardGenerator;
 import sgms.ui.AssignmentTableModel;
@@ -641,11 +642,22 @@ public class MainPage extends javax.swing.JFrame {
         if (courseModel != null) {
             int grade = getSelectedGradeLevel();
             String code = JOptionPane.showInputDialog(this, "Enter course code:");
-            if (code == null || code.trim().isEmpty()) {
+            if (code == null || !ValidationService.isNonEmpty(code) || !ValidationService.isValidCourseCode(code.trim())) {
+                JOptionPane.showMessageDialog(this, "Invalid course code.");
+                return;
+            }
+            try {
+                if (courseDAO.findByCode(code.trim()) != null) {
+                    JOptionPane.showMessageDialog(this, "Course code already exists.");
+                    return;
+                }
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, "Error checking course code: " + ex.getMessage());
                 return;
             }
             String name = JOptionPane.showInputDialog(this, "Enter course name:");
-            if (name == null || name.trim().isEmpty()) {
+            if (name == null || !ValidationService.isNonEmpty(name)) {
+                JOptionPane.showMessageDialog(this, "Course name is required.");
                 return;
             }
             Course c = new Course(0, code.trim(), name.trim(), grade, 0);
@@ -680,12 +692,12 @@ public class MainPage extends javax.swing.JFrame {
             int result = JOptionPane.showConfirmDialog(this, panel, "New Assignment", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
             if (result == JOptionPane.OK_OPTION) {
                 String title = titleField.getText().trim();
-                if (title.isEmpty()) {
+                if (!ValidationService.isNonEmpty(title)) {
                     JOptionPane.showMessageDialog(this, "Title is required.");
                     return;
                 }
                 String maxText = maxField.getText().trim();
-                if (maxText.isEmpty()) {
+                if (!ValidationService.isNonEmpty(maxText)) {
                     JOptionPane.showMessageDialog(this, "Max marks are required.");
                     return;
                 }
@@ -696,8 +708,12 @@ public class MainPage extends javax.swing.JFrame {
                     JOptionPane.showMessageDialog(this, "Max marks must be a number.");
                     return;
                 }
+                if (!ValidationService.isIntInRange(max, 0, 1000)) {
+                    JOptionPane.showMessageDialog(this, "Max marks must be between 0 and 1000.");
+                    return;
+                }
                 String termText = termField.getText().trim();
-                if (termText.isEmpty()) {
+                if (!ValidationService.isNonEmpty(termText)) {
                     JOptionPane.showMessageDialog(this, "Term is required.");
                     return;
                 }
@@ -708,12 +724,17 @@ public class MainPage extends javax.swing.JFrame {
                     JOptionPane.showMessageDialog(this, "Term must be a number between 1 and 4.");
                     return;
                 }
-                if (term < 1 || term > 4) {
+                if (!ValidationService.isIntInRange(term, 1, 4)) {
                     JOptionPane.showMessageDialog(this, "Term must be between 1 and 4.");
                     return;
                 }
                 java.util.Date utilDate = (java.util.Date) dateSpinner.getValue();
-                java.sql.Date due = new java.sql.Date(utilDate.getTime());
+                java.time.LocalDate dueLocal = utilDate.toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDate();
+                if (!ValidationService.isValidDueDate(dueLocal, LocalDate.now())) {
+                    JOptionPane.showMessageDialog(this, "Due date cannot be in the past.");
+                    return;
+                }
+                java.sql.Date due = java.sql.Date.valueOf(dueLocal);
                 Assignment a = new Assignment(0, courseId, title, max, term, due);
                 if (jTable.getRowSorter() != null) {
                     jTable.getRowSorter().setSortKeys(null);
@@ -991,6 +1012,16 @@ public class MainPage extends javax.swing.JFrame {
         }
         if (assignmentModel != null) {
             try {
+                for (Assignment a : assignmentModel.getAssignments()) {
+                    if (!ValidationService.isNonEmpty(a.getTitle()) || a.getMaxMarks() == null
+                            || !ValidationService.isIntInRange(a.getMaxMarks(), 0, 1000)
+                            || !ValidationService.isIntInRange(a.getTerm(), 1, 4)
+                            || a.getDueDate() == null
+                            || !ValidationService.isValidDueDate(a.getDueDate().toLocalDate(), LocalDate.now())) {
+                        JOptionPane.showMessageDialog(this, "Invalid assignment details.");
+                        return;
+                    }
+                }
                 Set<Integer> deleted = assignmentModel.getDeletedIds();
                 for (Assignment a : assignmentModel.getAssignments()) {
                     if (deleted.contains(a.getAssignmentId())) {
@@ -1012,6 +1043,22 @@ public class MainPage extends javax.swing.JFrame {
             }
             return;
         }
+        if (studentGradesModel != null) {
+            try {
+                Map<Integer, Map<Integer, Integer>> grades = studentGradesModel.getGrades();
+                for (Map.Entry<Integer, Map<Integer, Integer>> e : grades.entrySet()) {
+                    int studentId = e.getKey();
+                    Map<Integer, Integer> gmap = e.getValue();
+                    for (Map.Entry<Integer, Integer> g : gmap.entrySet()) {
+                        gradeDAO.upsert(studentId, g.getKey(), g.getValue());
+                    }
+                }
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, "Unable to save grades: " + ex.getMessage(),
+                        "Error", JOptionPane.ERROR_MESSAGE);
+            }
+            return;
+        }
         if (courseModel != null) {
             try {
                 Set<Integer> deleted = courseModel.getDeletedIds();
@@ -1022,8 +1069,18 @@ public class MainPage extends javax.swing.JFrame {
                         }
                     } else {
                         if (c.getCourseId() == 0) {
+                            if (!ValidationService.isValidCourseCode(c.getCourseCode())
+                                    || courseDAO.findByCode(c.getCourseCode()) != null
+                                    || !ValidationService.isNonEmpty(c.getCourseName())) {
+                                JOptionPane.showMessageDialog(this, "Invalid or duplicate course: " + c.getCourseCode());
+                                return;
+                            }
                             courseDAO.add(c);
                         } else {
+                            if (!ValidationService.isNonEmpty(c.getCourseName())) {
+                                JOptionPane.showMessageDialog(this, "Course name is required.");
+                                return;
+                            }
                             courseDAO.update(c);
                         }
                     }
@@ -1280,8 +1337,7 @@ public class MainPage extends javax.swing.JFrame {
         new SwingWorker<Void, Void>() {
             @Override
             protected Void doInBackground() throws Exception {
-                Map<String, String> data = ReportCardGenerator.buildData(selected,
-                        courseDAO, assignmentDAO, gradeDAO, feedbackDAO);
+                Map<String, String> data = ReportCardGenerator.buildData(selected);
                 Path docx = ReportCardGenerator.generateDocx(data);
                 ReportCardGenerator.openFile(docx);
                 return null;
@@ -1470,20 +1526,77 @@ private void loadCourses() {
     
     private void loadStudentsForSelectedCourse() {
         try {
-            int courseId = getSelectedCourseId();
-            List<Student> students = courseId > 0 ?
-                    studentDAO.findByCourse(courseId) : studentDAO.findAll();
-            studentTableModel = new StudentTableModel(students);
-            jTable.setModel(studentTableModel);
-            jTable.setAutoCreateRowSorter(true);
-            TableRowSorter<?> sorter = (TableRowSorter<?>) jTable.getRowSorter();
-            sorter.setSortKeys(List.of(new RowSorter.SortKey(2, SortOrder.ASCENDING)));
-            selectionMode = false;
-            studentSelectionModel = null;
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "Unable to load students: " + ex.getMessage(),
-                    "Error", JOptionPane.ERROR_MESSAGE);
+        int courseId = getSelectedCourseId();
+
+        // Get fresh data: if no course is selected yet, show ALL students
+        java.util.List<sgms.model.Student> students;
+        if (courseId > 0) {
+            students = studentDAO.findByCourse(courseId);
+        } else {
+            students = studentDAO.findAll();
         }
+
+        // Clear modes not used in the "View Students" screen
+        studentGradesModel = null;
+        finalGradesModel = null;
+        selectionMode = false;
+        studentSelectionModel = null;
+
+        // Reuse existing StudentTableModel if present, else set a new one
+        if (jTable.getModel() instanceof sgms.ui.StudentTableModel) {
+            ((sgms.ui.StudentTableModel) jTable.getModel()).setRows(students);
+        } else {
+            studentTableModel = new sgms.ui.StudentTableModel(students);
+            jTable.setModel(studentTableModel);
+        }
+
+        // Ensure a sorter exists and is bound to the CURRENT model
+        javax.swing.RowSorter<?> rs = jTable.getRowSorter();
+        if (!(rs instanceof javax.swing.table.TableRowSorter)) {
+            jTable.setAutoCreateRowSorter(true);
+            rs = jTable.getRowSorter();
+        }
+        @SuppressWarnings("unchecked")
+        javax.swing.table.TableRowSorter<javax.swing.table.TableModel> sorter =
+                (javax.swing.table.TableRowSorter<javax.swing.table.TableModel>) rs;
+        sorter.setModel(jTable.getModel());
+
+        // Clear any old search filter so rows are visible when switching view
+        sorter.setRowFilter(null);
+
+        // Case-insensitive comparison for names (no lambdas)
+        java.text.Collator coll = java.text.Collator.getInstance(java.util.Locale.ROOT);
+        coll.setStrength(java.text.Collator.PRIMARY);
+        sorter.setComparator(1, coll); // First Name
+        sorter.setComparator(2, coll); // Last Name
+
+        // Multi-column sort: Grade (col 3), then Last Name (col 2), then First Name (col 1)
+        java.util.List<javax.swing.RowSorter.SortKey> keys =
+                new java.util.ArrayList<javax.swing.RowSorter.SortKey>();
+        keys.add(new javax.swing.RowSorter.SortKey(3, javax.swing.SortOrder.ASCENDING));
+        keys.add(new javax.swing.RowSorter.SortKey(2, javax.swing.SortOrder.ASCENDING));
+        keys.add(new javax.swing.RowSorter.SortKey(1, javax.swing.SortOrder.ASCENDING));
+        sorter.setSortKeys(keys);
+        sorter.sort(); // apply now
+
+        // Refresh table
+        jTable.clearSelection();
+        jTable.revalidate();
+        jTable.repaint();
+        
+        javax.swing.table.DefaultTableCellRenderer left = new javax.swing.table.DefaultTableCellRenderer();
+        left.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+        jTable.getColumnModel().getColumn(0).setCellRenderer(left); // ID
+        jTable.getColumnModel().getColumn(3).setCellRenderer(left); // Grade
+
+    } catch (Exception ex) {
+        javax.swing.JOptionPane.showMessageDialog(
+                this,
+                "Unable to load students: " + ex.getMessage(),
+                "Error",
+                javax.swing.JOptionPane.ERROR_MESSAGE
+        );
+    }
     }
 
     private void startEnrollmentEdit() {
@@ -1521,11 +1634,10 @@ private void loadCourses() {
             if (courseId <= 0) {
                 return;
             }
-            GradeDAO gradeDAO = new UcanaccessGradeDAO();
             List<Student> students = studentDAO.findByCourse(courseId);
             List<Assignment> assignments = assignmentDAO.findByCourse(courseId);
             Map<Integer, Map<Integer, Integer>> grades = gradeDAO.findByCourse(courseId);
-            studentGradesModel = new StudentGradesTableModel(students, assignments, grades, gradeDAO);
+            studentGradesModel = new StudentGradesTableModel(students, assignments, grades);
             finalGradesModel = null;
             studentTableModel = null;
             selectionMode = false;

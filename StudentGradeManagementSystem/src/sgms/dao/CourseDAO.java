@@ -19,4 +19,7 @@ public interface CourseDAO {
 
     /** Deletes the course with the given ID. */
     boolean delete(int courseId) throws Exception;
+
+    /** Finds a course by its code or returns null if not found. */
+    Course findByCode(String code) throws Exception;
 }

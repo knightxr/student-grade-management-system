@@ -1,102 +1,73 @@
+// FILE: src/sgms/util/ReportCardGenerator.java
 package sgms.util;
 
 import java.awt.Desktop;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.LocalDate;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.regex.Pattern;
-import java.util.regex.Matcher;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
-import sgms.dao.AssignmentDAO;
-import sgms.dao.CourseDAO;
-import sgms.dao.FeedbackDAO;
-import sgms.dao.GradeDAO;
-import sgms.model.Assignment;
-import sgms.model.Course;
 import sgms.model.Student;
+import sgms.service.ReportService;
 
 /**
- * Utility class for generating a report card from the bundled Word template.
- * <p>
- * The implementation performs a very small subset of Mail Merge by replacing
- * merge fields in the template's <code>word/document.xml</code> with values
- * provided in a map. The resulting document is written to a temporary file
- * which can then be printed using the operating system's default application.
- * </p>
+ * Utility to generate and open report cards from a DOCX template.
+ * Supports:
+ *  - Word MERGEFIELDs in both forms:
+ *      (1) <w:fldSimple w:instr="... MERGEFIELD KEY ..."> ... </w:fldSimple>
+ *      (2) Run-based begin / instrText " MERGEFIELD KEY " / ... / end sequences
+ *  - Simple placeholders: {{KEY}}, ${KEY}, <<KEY>>, and «KEY»
+ *  - mailMerge settings removal so Word does not prompt for a data source
  */
 public final class ReportCardGenerator {
 
-    private ReportCardGenerator() {
-    }
+    private ReportCardGenerator() { }
 
     /**
-     * Generates a new DOCX report card with the provided merge data.
+     * Generates a DOCX by copying the bundled template and replacing placeholders
+     * in document.xml (and headers/footers) with values from mergeData.
      *
-     * @param mergeData mapping of merge field names to values
-     * @return path to the generated DOCX file
-     * @throws IOException if an I/O error occurs
+     * @param mergeData map of field name → value (unescaped; this method escapes)
+     * @return path to the generated .docx file
+     * @throws IOException if the template cannot be read or file cannot be written
      */
     public static Path generateDocx(Map<String, String> mergeData) throws IOException {
         Path out = Files.createTempFile("report_card_", ".docx");
 
-        try (InputStream template = ReportCardGenerator.class.getResourceAsStream("/sgms/data/Report_Card.docx");
-             ZipInputStream zin = new ZipInputStream(template);
+        try (InputStream templateIn = openTemplate();
+             ZipInputStream zin = new ZipInputStream(templateIn);
              ZipOutputStream zout = new ZipOutputStream(Files.newOutputStream(out))) {
-            ZipEntry entry;
-            while ((entry = zin.getNextEntry()) != null) {
-                byte[] data = zin.readAllBytes();
-                String name = entry.getName();
-                if ("word/document.xml".equals(name)) {
+
+            ZipEntry inEntry;
+            while ((inEntry = zin.getNextEntry()) != null) {
+                String name = inEntry.getName();
+                byte[] data = readAllBytes(zin);
+
+                // Process document body and header/footer XMLs
+                if ("word/document.xml".equals(name)
+                        || name.startsWith("word/header")
+                        || name.startsWith("word/footer")) {
+
                     String xml = new String(data, StandardCharsets.UTF_8);
-                    for (Map.Entry<String, String> e : mergeData.entrySet()) {
-                        String field = Pattern.quote(e.getKey());
-                        String value = escapeXml(e.getValue() == null ? "" : e.getValue());
-
-                        String[] parts = value.split("\\n", -1);
-                        StringBuilder run = new StringBuilder("<w:r>");
-                        for (int i = 0; i < parts.length; i++) {
-                            if (i > 0) {
-                                run.append("<w:br/>");
-                            }
-                            run.append("<w:t>").append(parts[i]).append("</w:t>");
-                        }
-                        run.append("</w:r>");
-                        String replacement = run.toString();
-
-                        // Handle simple merge fields stored in <w:fldSimple>
-                        String patternSimple =
-                                "<w:fldSimple[^>]*MERGEFIELD\\s+\\\"?" + field + "\\\"?[^>]*>.*?</w:fldSimple>";
-                        xml = xml.replaceAll(patternSimple, Matcher.quoteReplacement(replacement));
-
-                        // Handle complex fields composed of w:fldChar and w:instrText
-                        String patternComplex =
-                                "<w:fldChar[^>]*/><w:instrText[^>]*>[^<]*MERGEFIELD\\s+" +
-                                field + "[^<]*</w:instrText>.*?<w:fldChar[^>]*w:fldCharType=\\\"end\\\"[^>]*/>";
-                        xml = xml.replaceAll(patternComplex, Matcher.quoteReplacement(replacement));
-
-                        // Replace the human-readable placeholder text such as «Field_Name»
-                        String placeholder = "\u00AB" + e.getKey() + "\u00BB";
-                        xml = xml.replace(placeholder, value);
-                    }
-                    data = xml.getBytes(StandardCharsets.UTF_8);
-                } else if ("word/settings.xml".equals(name)) {
+                    String merged = applyMergeAll(xml, mergeData);
+                    data = merged.getBytes(StandardCharsets.UTF_8);
+                }
+                // Remove mail merge settings so Word won’t prompt
+                else if ("word/settings.xml".equals(name)) {
                     String xml = new String(data, StandardCharsets.UTF_8);
-                    // Remove mail merge settings so Word does not prompt for a data source
-                    xml = xml.replaceAll("<w:mailMerge[\\s\\S]*?</w:mailMerge>", "");
+                    xml = xml.replaceAll("(?s)<w:mailMerge[\\s\\S]*?</w:mailMerge>", "");
                     data = xml.getBytes(StandardCharsets.UTF_8);
                 }
-                zout.putNextEntry(new ZipEntry(entry.getName()));
+
+                zout.putNextEntry(new ZipEntry(name));
                 zout.write(data);
                 zout.closeEntry();
                 zin.closeEntry();
@@ -106,19 +77,12 @@ public final class ReportCardGenerator {
         return out;
     }
 
-    /**
-     * Opens the given file using the desktop's default application. This is
-     * used to launch the generated report card in Microsoft Word so the user
-     * can review or export it to PDF.
-     */
+    /** Opens a DOCX using the OS default application (usually Word). */
     public static void openFile(Path file) throws IOException {
         openFile(file.toFile());
     }
 
-    /**
-     * Variant accepting a {@link java.io.File} for callers compiled against
-     * older versions of this utility.
-     */
+    /** Variant accepting a File. */
     public static void openFile(File file) throws IOException {
         if (Desktop.isDesktopSupported()) {
             Desktop.getDesktop().open(file);
@@ -126,113 +90,178 @@ public final class ReportCardGenerator {
     }
 
     /**
-     * Builds merge data for the given student by querying the various DAOs for
-     * grades and feedback. Attendance has been removed from the report card
-     * template so it is no longer included here.
+     * Builds merge data for a student via your service layer.
+     * Change the called method if your service uses a different name.
      */
-    public static Map<String, String> buildData(Student s,
-            CourseDAO courseDAO,
-            AssignmentDAO assignmentDAO,
-            GradeDAO gradeDAO,
-            FeedbackDAO feedbackDAO) throws Exception {
-        Map<String, String> data = new HashMap<>();
-        data.put("First_Name", s.getFirstName());
-        data.put("Last_Name", s.getLastName());
-        data.put("Grade", String.valueOf(s.getGradeLevel()));
-        LocalDate now = LocalDate.now();
-        data.put("Year", String.valueOf(now.getYear()));
-        data.put("Date", now.toString());
+    public static Map<String, String> buildData(Student s) throws Exception {
+        ReportService service = new ReportService();
+        return service.buildReportCardData(s);
+    }
 
-        List<Course> courses = courseDAO.findByGrade(s.getGradeLevel());
+    // ----------------- merge helpers -----------------
 
-        // Pre‑populate merge fields for expected subjects so placeholders are
-        // always replaced even if a course or grades are missing.
-        String[] names = {
-            "English", "Afrikaans", "Mathematics", "Physics",
-            "Business Studies", "Information Technology", "French", "Music"
-        };
-        Map<String, String> normalised = new HashMap<>();
-        for (String name : names) {
-            String base = name.replace(' ', '_');
-            for (int i = 1; i <= 4; i++) {
-                data.put(base + "_T" + i, "");
-            }
-            data.put(base + "_Final", "");
-            data.put(base + "_Feedback", "");
-            normalised.put(normalize(name), name);
+    private static String applyMergeAll(String xml, Map<String, String> data) {
+        if (xml == null || data == null || data.isEmpty()) return xml;
+
+        String out = xml;
+        out = applyPlaceholders(out, data);      // {{KEY}}, ${KEY}, <<KEY>>
+        out = replaceFldSimple(out, data);       // <w:fldSimple ... MERGEFIELD KEY ...>
+        out = replaceFieldCodeRuns(out, data);   // begin / instrText MERGEFIELD KEY / ... / end
+        out = replaceChevrons(out, data);        // «KEY» human-readable placeholders
+        return out;
+    }
+
+    /** Simple placeholders inside the XML text itself. */
+    private static String applyPlaceholders(String xml, Map<String, String> data) {
+        String out = xml;
+        for (Map.Entry<String, String> e : data.entrySet()) {
+            String key = e.getKey() == null ? "" : e.getKey().trim();
+            if (key.length() == 0) continue;
+
+            String value = e.getValue() == null ? "" : e.getValue();
+            String escaped = escapeXmlWithLineBreaks(value);
+
+            out = out.replace("{{" + key + "}}", escaped);
+            out = out.replace("${" + key + "}", escaped);
+            out = out.replace("<<" + key + ">>", escaped);
         }
+        return out;
+    }
 
-        int studentId = s.getStudentId();
-        StringBuilder feedback = new StringBuilder();
+    /** Replace <w:fldSimple ... w:instr="... MERGEFIELD KEY ..."> ... </w:fldSimple> with a plain run. */
+    private static String replaceFldSimple(String xml, Map<String, String> data) {
+        String out = xml;
+        for (Map.Entry<String, String> e : data.entrySet()) {
+            String key = e.getKey();
+            if (key == null || key.trim().length() == 0) continue;
 
-        for (Course c : courses) {
-            String name = normalised.get(normalize(c.getCourseName()));
-            if (name == null) {
-                // attempt substring match for courses with extended names
-                String normCourse = normalize(c.getCourseName());
-                for (Map.Entry<String, String> e : normalised.entrySet()) {
-                    if (normCourse.contains(e.getKey())) {
-                        name = e.getValue();
-                        break;
-                    }
-                }
-            }
-            if (name == null) {
-                continue; // no placeholder for this course
-            }
+            String value = e.getValue() == null ? "" : e.getValue();
+            String run   = makeRun(value); // builds <w:r><w:t>..</w:t></w:r> with <w:br/> for newlines
 
-            String base = name.replace(' ', '_');
-            List<Assignment> assigns = assignmentDAO.findByCourse(c.getCourseId());
-            Map<Integer, Map<Integer, Integer>> gradesByStudent = gradeDAO.findByCourse(c.getCourseId());
-            Map<Integer, Integer> grades = gradesByStudent.getOrDefault(studentId, java.util.Collections.emptyMap());
-
-            double[] termSum = new double[4];
-            int[] termCount = new int[4];
-            for (Assignment a : assigns) {
-                Integer mark = grades.get(a.getAssignmentId());
-                if (mark != null) {
-                    int term = a.getTerm();
-                    termSum[term - 1] += mark;
-                    termCount[term - 1]++;
-                }
-            }
-            Double[] termAvg = new Double[4];
-            for (int i = 0; i < 4; i++) {
-                String key = base + "_T" + (i + 1);
-                if (termCount[i] > 0) {
-                    termAvg[i] = termSum[i] / termCount[i];
-                    data.put(key, String.valueOf(Math.round(termAvg[i])));
-                } else {
-                    termAvg[i] = null; // remains blank
-                }
-            }
-            Double finalAvg = GradeCalculator.calculateFinalGrade(termAvg[0], termAvg[1], termAvg[2], termAvg[3]);
-            if (finalAvg != null) {
-                data.put(base + "_Final", String.valueOf(Math.round(finalAvg)));
-            }
-
-            Map<Integer, String> fb = feedbackDAO.findByCourse(c.getCourseId());
-            String note = fb.get(studentId);
-            if (note != null) {
-                note = note.trim();
-                if (!note.isEmpty()) {
-                    if (feedback.length() > 0) {
-                        feedback.append('\n');
-                    }
-                    feedback.append(note);
-                    data.put(base + "_Feedback", note);
-                }
-            }
+            String pattern =
+                "(?s)<w:fldSimple[^>]*w:instr=\"[^\"]*MERGEFIELD\\s+"
+                + java.util.regex.Pattern.quote(key)
+                + "[^\"]*\"[^>]*>.*?</w:fldSimple>";
+            java.util.regex.Pattern p = java.util.regex.Pattern.compile(pattern);
+            java.util.regex.Matcher m = p.matcher(out);
+            out = m.replaceAll(java.util.regex.Matcher.quoteReplacement(run));
         }
-        data.put("Feedback", feedback.toString().trim());
-        return data;
+        return out;
+    }
+
+    /**
+     * Replace the run-based field code form:
+     *   <w:r><w:fldChar w:type="begin"/></w:r> ... <w:instrText> MERGEFIELD KEY </w:instrText> ... <w:r><w:fldChar w:type="end"/></w:r>
+     * with a single run containing the value.
+     */
+    private static String replaceFieldCodeRuns(String xml, Map<String, String> data) {
+        String out = xml;
+        for (Map.Entry<String, String> e : data.entrySet()) {
+            String key = e.getKey();
+            if (key == null || key.trim().length() == 0) continue;
+
+            String value = e.getValue() == null ? "" : e.getValue();
+            String run   = makeRun(value);
+
+            // Conservative pattern: from a begin fldChar to a matching end fldChar
+            // where an instrText containing MERGEFIELD KEY appears between them.
+            String pattern =
+                "(?s)"
+              + "<w:r[^>]*>\\s*<w:fldChar[^>]*w:type=\"begin\"[^>]*/>\\s*</w:r>"
+              + ".*?"
+              + "<w:instrText[^>]*>[^<]*MERGEFIELD\\s+" + java.util.regex.Pattern.quote(key) + "[^<]*</w:instrText>"
+              + ".*?"
+              + "<w:r[^>]*>\\s*<w:fldChar[^>]*w:type=\"end\"[^>]*/>\\s*</w:r>";
+
+            java.util.regex.Pattern p = java.util.regex.Pattern.compile(pattern);
+            java.util.regex.Matcher m = p.matcher(out);
+            out = m.replaceAll(java.util.regex.Matcher.quoteReplacement(run));
+        }
+        return out;
+    }
+
+    /** Replace human-readable «KEY» placeholders if they survived as plain text. */
+    private static String replaceChevrons(String xml, Map<String, String> data) {
+        String out = xml;
+        for (Map.Entry<String, String> e : data.entrySet()) {
+            String key = e.getKey();
+            if (key == null || key.trim().length() == 0) continue;
+
+            String value = e.getValue() == null ? "" : e.getValue();
+            String escaped = escapeXmlWithLineBreaks(value);
+            String chevron = "\u00AB" + key + "\u00BB"; // «KEY»
+            out = out.replace(chevron, escaped);
+        }
+        return out;
+    }
+
+    // ----------------- file/template helpers -----------------
+
+    private static InputStream openTemplate() throws IOException {
+        // Try from resources first
+        InputStream in = ReportCardGenerator.class.getResourceAsStream("/sgms/data/Report_Card.docx");
+        if (in != null) return in;
+
+        // Fallback to project paths (useful when running from NetBeans)
+        Path p1 = Path.of("src", "sgms", "data", "Report_Card.docx");
+        if (Files.exists(p1)) return Files.newInputStream(p1);
+
+        Path p2 = Path.of("sgms", "data", "Report_Card.docx");
+        if (Files.exists(p2)) return Files.newInputStream(p2);
+
+        throw new IOException("Report_Card.docx not found in resources or project folder.");
+    }
+
+    private static byte[] readAllBytes(InputStream in) throws IOException {
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        copyStream(in, bos);
+        return bos.toByteArray();
+    }
+
+    private static void copyStream(InputStream in, java.io.OutputStream out) throws IOException {
+        byte[] buf = new byte[8192];
+        int r;
+        while ((r = in.read(buf)) != -1) {
+            out.write(buf, 0, r);
+        }
+    }
+
+    // ----------------- text helpers -----------------
+
+    /** Builds a Word run for the given plain text (with <w:br/> for newlines); escapes XML. */
+    private static String makeRun(String text) {
+        String safe = text == null ? "" : text;
+        String[] parts = safe.split("\\n", -1);
+        StringBuilder run = new StringBuilder("<w:r>");
+        for (int i = 0; i < parts.length; i++) {
+            if (i > 0) run.append("<w:br/>");
+            run.append("<w:t>").append(escapeXml(parts[i])).append("</w:t>");
+        }
+        run.append("</w:r>");
+        return run.toString();
+    }
+
+    /** Escape XML and preserve newlines using <w:br/> where the caller inserts into text directly. */
+    private static String escapeXmlWithLineBreaks(String s) {
+        if (s == null || s.length() == 0) return "";
+        String[] parts = s.split("\\n", -1);
+        StringBuilder b = new StringBuilder();
+        for (int i = 0; i < parts.length; i++) {
+            if (i > 0) b.append("<w:br/>");
+            b.append(escapeXml(parts[i]));
+        }
+        return b.toString();
     }
 
     private static String normalize(String s) {
+        if (s == null) return "";
         return s.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]", "");
     }
 
     private static String escapeXml(String s) {
-        return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
+        if (s == null) return "";
+        return s.replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;");
     }
 }

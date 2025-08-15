@@ -4,6 +4,7 @@ import sgms.model.FinalGrade;
 import java.util.ArrayList;
 import java.util.List;
 import javax.swing.table.AbstractTableModel;
+import sgms.dao.FinalGradeDAO;
 
 /**
  * Table model for final grades display (read-only).
@@ -15,6 +16,14 @@ public class FinalGradesTableModel extends AbstractTableModel {
 
     public FinalGradesTableModel(List<FinalGrade> list) {
         this.grades = new ArrayList<>(list);
+    }
+
+    /**
+     * Backward-compatible constructor that accepts a DAO parameter which is no
+     * longer used.
+     */
+    public FinalGradesTableModel(List<FinalGrade> list, FinalGradeDAO dao) {
+        this(list);
     }
 
     @Override
@@ -40,16 +49,24 @@ public class FinalGradesTableModel extends AbstractTableModel {
     @Override
     public Object getValueAt(int rowIndex, int columnIndex) {
         FinalGrade g = grades.get(rowIndex);
-        return switch (columnIndex) {
-            case 0 -> g.getFirstName();
-            case 1 -> g.getLastName();
-            case 2 -> format(g.getTerm1());
-            case 3 -> format(g.getTerm2());
-            case 4 -> format(g.getTerm3());
-            case 5 -> format(g.getTerm4());
-            case 6 -> format(g.getFinalGrade());
-            default -> null;
-        };
+        switch (columnIndex) {
+            case 0:
+                return g.getFirstName();
+            case 1:
+                return g.getLastName();
+            case 2:
+                return format(g.getTerm1());
+            case 3:
+                return format(g.getTerm2());
+            case 4:
+                return format(g.getTerm3());
+            case 5:
+                return format(g.getTerm4());
+            case 6:
+                return format(g.getFinalGrade());
+            default:
+                return null;
+        }
     }
 
     private String format(Integer value) {

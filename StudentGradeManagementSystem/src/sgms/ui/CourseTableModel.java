@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import sgms.dao.CourseDAO;
 
 /**
  * Table model representing courses with student counts.
@@ -19,6 +20,14 @@ public class CourseTableModel extends AbstractTableModel {
 
     public CourseTableModel(List<Course> list) {
         this.courses = new ArrayList<>(list);
+    }
+
+    /**
+     * Backward-compatible constructor accepting a DAO parameter that is
+     * ignored. The model no longer accesses persistence directly.
+     */
+    public CourseTableModel(List<Course> list, CourseDAO courseDAO) {
+        this(list);
     }
 
     @Override
@@ -38,11 +47,15 @@ public class CourseTableModel extends AbstractTableModel {
 
     @Override
     public Class<?> getColumnClass(int columnIndex) {
-        return switch (columnIndex) {
-            case 0 -> Boolean.class;
-            case 1, 4 -> Integer.class;
-            default -> String.class;
-        };
+        switch (columnIndex) {
+            case 0:
+                return Boolean.class;
+            case 1:
+            case 4:
+                return Integer.class;
+            default:
+                return String.class;
+        }
     }
 
     @Override
@@ -53,14 +66,20 @@ public class CourseTableModel extends AbstractTableModel {
     @Override
     public Object getValueAt(int rowIndex, int columnIndex) {
         Course c = courses.get(rowIndex);
-        return switch (columnIndex) {
-            case 0 -> deletedIds.contains(c.getCourseId());
-            case 1 -> c.getCourseId();
-            case 2 -> c.getCourseCode();
-            case 3 -> c.getCourseName();
-            case 4 -> c.getStudentCount();
-            default -> null;
-        };
+        switch (columnIndex) {
+            case 0:
+                return deletedIds.contains(c.getCourseId());
+            case 1:
+                return c.getCourseId();
+            case 2:
+                return c.getCourseCode();
+            case 3:
+                return c.getCourseName();
+            case 4:
+                return c.getStudentCount();
+            default:
+                return null;
+        }
     }
 
     @Override

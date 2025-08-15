@@ -50,4 +50,58 @@ public final class GradeCalculator {
         double result = total / weight;
         return Math.max(0.0, Math.min(result, 100.0));
     }
+
+    /** Returns the class average for the given marks. */
+    public static double classAverage(int[] marks) {
+        if (marks == null || marks.length == 0) {
+            return 0.0;
+        }
+        int total = 0;
+        for (int i = 0; i < marks.length; i++) {
+            total += marks[i];
+        }
+        return (double) total / marks.length;
+    }
+
+    /** Simple bubble sort that orders the array ascending with early exit. */
+    public static void bubbleSortAscending(int[] a) {
+        boolean swapped;
+        for (int i = 0; i < a.length - 1; i++) {
+            swapped = false;
+            for (int j = 0; j < a.length - 1 - i; j++) {
+                if (a[j] > a[j + 1]) {
+                    int tmp = a[j];
+                    a[j] = a[j + 1];
+                    a[j + 1] = tmp;
+                    swapped = true;
+                }
+            }
+            if (!swapped) {
+                break;
+            }
+        }
+    }
+
+    /** Linear search for integers. Returns index or -1. */
+    public static int linearSearch(int[] a, int target) {
+        for (int i = 0; i < a.length; i++) {
+            if (a[i] == target) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    /** Case-insensitive linear search for strings. Returns index or -1. */
+    public static int linearSearch(String[] a, String target) {
+        if (target == null) {
+            return -1;
+        }
+        for (int i = 0; i < a.length; i++) {
+            if (target.equalsIgnoreCase(a[i])) {
+                return i;
+            }
+        }
+        return -1;
+    }
 }

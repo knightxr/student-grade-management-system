@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import sgms.dao.StudentDAO;
 
 /**
  * Table model that displays all students with a selectable checkbox column.
@@ -22,6 +23,15 @@ public class StudentSelectionTableModel extends AbstractTableModel {
         this.students = new ArrayList<>(students);
         this.selectedIds = new HashSet<>(initiallySelected);
         this.originalIds = new HashSet<>(initiallySelected);
+    }
+
+    /**
+     * Backward-compatible constructor accepting a DAO parameter that is
+     * ignored. Delegates to the primary constructor.
+     */
+    public StudentSelectionTableModel(List<Student> students, Set<Integer> initiallySelected,
+                                      StudentDAO studentDAO) {
+        this(students, initiallySelected);
     }
 
     @Override
@@ -41,12 +51,18 @@ public class StudentSelectionTableModel extends AbstractTableModel {
 
     @Override
     public Class<?> getColumnClass(int columnIndex) {
-        return switch (columnIndex) {
-            case 0 -> Boolean.class;
-            case 1, 4 -> Integer.class;
-            case 2, 3 -> String.class;
-            default -> Object.class;
-        };
+        switch (columnIndex) {
+            case 0:
+                return Boolean.class;
+            case 1:
+            case 4:
+                return Integer.class;
+            case 2:
+            case 3:
+                return String.class;
+            default:
+                return Object.class;
+        }
     }
 
     @Override
@@ -57,14 +73,20 @@ public class StudentSelectionTableModel extends AbstractTableModel {
     @Override
     public Object getValueAt(int rowIndex, int columnIndex) {
         Student s = students.get(rowIndex);
-        return switch (columnIndex) {
-            case 0 -> selectedIds.contains(s.getStudentId());
-            case 1 -> s.getStudentId();
-            case 2 -> s.getFirstName();
-            case 3 -> s.getLastName();
-            case 4 -> s.getGradeLevel();
-            default -> null;
-        };
+        switch (columnIndex) {
+            case 0:
+                return selectedIds.contains(s.getStudentId());
+            case 1:
+                return s.getStudentId();
+            case 2:
+                return s.getFirstName();
+            case 3:
+                return s.getLastName();
+            case 4:
+                return s.getGradeLevel();
+            default:
+                return null;
+        }
     }
 
     @Override

@@ -208,7 +208,10 @@ public final class ReportCardGenerator {
         Path p2 = Path.of("sgms", "data", "Report_Card.docx");
         if (Files.exists(p2)) return Files.newInputStream(p2);
 
-        throw new IOException("Report_Card.docx not found in resources or project folder.");
+        throw new IOException(
+                "Report_Card.docx not found in resources or project folder."
+                + " Looked for classpath resource /sgms/data/Report_Card.docx"
+                + " and files src/sgms/data/Report_Card.docx or sgms/data/Report_Card.docx.");
     }
 
     private static byte[] readAllBytes(InputStream in) throws IOException {

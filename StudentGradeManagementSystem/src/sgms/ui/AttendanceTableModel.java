@@ -89,8 +89,19 @@ public class AttendanceTableModel extends AbstractTableModel {
         Student s = students.get(rowIndex);
         LocalDate d = weekDays[columnIndex - 1];
         boolean present = Boolean.TRUE.equals(aValue);
-        attendance.computeIfAbsent(s.getStudentId(), k -> new HashMap<>()).put(d, present);
-        changes.computeIfAbsent(s.getStudentId(), k -> new HashMap<>()).put(d, present);
+        Map<LocalDate, Boolean> studentAttendance = attendance.get(s.getStudentId());
+        if (studentAttendance == null) {
+            studentAttendance = new HashMap<LocalDate, Boolean>();
+            attendance.put(s.getStudentId(), studentAttendance);
+        }
+        studentAttendance.put(d, present);
+
+        Map<LocalDate, Boolean> studentChanges = changes.get(s.getStudentId());
+        if (studentChanges == null) {
+            studentChanges = new HashMap<LocalDate, Boolean>();
+            changes.put(s.getStudentId(), studentChanges);
+        }
+        studentChanges.put(d, present);
         fireTableCellUpdated(rowIndex, columnIndex);
     }
 

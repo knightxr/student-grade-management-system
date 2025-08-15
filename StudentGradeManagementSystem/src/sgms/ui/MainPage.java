@@ -194,8 +194,18 @@ public class MainPage extends javax.swing.JFrame {
         jTable.getTableHeader().setFont(jTable.getTableHeader().getFont().deriveFont(Font.BOLD));
         jTextFieldSearch.setText("Search");
         jTextFieldSearch.setForeground(Color.GRAY);
-        jButtonSave.addActionListener(this::jButtonSaveActionPerformed);
-        jButtonEdit.addActionListener(this::jButtonEditActionPerformed);
+        jButtonSave.addActionListener(new java.awt.event.ActionListener() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButtonSaveActionPerformed(evt);
+            }
+        });
+        jButtonEdit.addActionListener(new java.awt.event.ActionListener() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButtonEditActionPerformed(evt);
+            }
+        });
         SearchUtil.installSearch(jTable, jTextFieldSearch, jButtonSearch);
         jComboBox.setEnabled(false);
         jComboBox.removeAllItems();
@@ -1768,7 +1778,7 @@ private void loadCourses() {
                 assignments.add(assigns.get(j));
             }
 
-            // merge grades: studentId -> (assignmentId -> raw mark)
+            // merge grades: studentId maps to (assignmentId maps to raw mark)
             java.util.Map<Integer, java.util.Map<Integer, Integer>> gByStu = gradeDAO.findByCourse(c.getCourseId());
             java.util.Iterator<java.util.Map.Entry<Integer, java.util.Map<Integer, Integer>>> it = gByStu.entrySet().iterator();
             while (it.hasNext()) {

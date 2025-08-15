@@ -65,7 +65,7 @@ public class FinalGradesTableModel extends AbstractTableModel {
 
         // Term averages
         if (columnIndex >= 2 && columnIndex <= 5) {
-            int term = (columnIndex - 2) + 1; // 2->1, 3->2, 4->3, 5->4
+            int term = (columnIndex - 2) + 1; // 2 maps to 1, 3 to 2, 4 to 3, 5 to 4
             Double t = computeTermAveragePercent(s.getStudentId(), term);
             return (t == null) ? null : Integer.valueOf((int)Math.round(t.doubleValue()));
         }

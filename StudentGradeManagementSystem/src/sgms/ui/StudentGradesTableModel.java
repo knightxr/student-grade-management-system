@@ -27,7 +27,7 @@ public class StudentGradesTableModel extends AbstractTableModel {
 
     private final List<Student> students;
     private final List<Assignment> assignments;
-    // studentId -> (assignmentId -> RAW mark)
+    // studentId maps to (assignmentId maps to RAW mark)
     private final Map<Integer, Map<Integer, Integer>> grades;
 
     public StudentGradesTableModel(List<Student> students,

@@ -56,9 +56,7 @@ public final class GradeCalculator {
         return Double.valueOf(finalPct);
     }
 
-    // ------------------- Other syllabus-level helpers -------------------
-
-    /** Average of an int[] (returns double). Empty array -> 0.0 */
+    /** Average of an int[] (returns double). Empty array yields 0.0 */
     public static double classAverage(int[] marks) {
         if (marks == null || marks.length == 0) return 0.0;
         long total = 0;

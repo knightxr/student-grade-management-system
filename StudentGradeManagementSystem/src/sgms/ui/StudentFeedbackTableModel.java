@@ -13,7 +13,7 @@ public class StudentFeedbackTableModel extends AbstractTableModel {
 
     private final String[] columns = {"First Name", "Last Name", "Comment"};
     private final List<Student> students;
-    private final Map<Integer, String> comments; // studentId -> note
+    private final Map<Integer, String> comments; // studentId to note
     private final int PREVIEW_LENGTH = 55;
 
     public StudentFeedbackTableModel(List<Student> students, Map<Integer, String> comments) {

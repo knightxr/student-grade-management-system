@@ -1,6 +1,6 @@
 package sgms.ui;
 import javax.swing.JOptionPane;
-import sgms.util.CredentialManager;
+import sgms.service.AuthService;
 
 /**
  * @author Jacques Smit
@@ -9,12 +9,11 @@ import sgms.util.CredentialManager;
  * It allows users to log in, sign up, or reset their password.
  */
 public class LoginPage extends javax.swing.JFrame {
-    private final CredentialManager credentialManager;
+    private final AuthService authService;
 
     public LoginPage() {
         initComponents();
-        credentialManager = new CredentialManager();
-        setResizable(false);
+        authService = new AuthService();
     }
 
     /**
@@ -212,23 +211,20 @@ public class LoginPage extends javax.swing.JFrame {
      * Handles the action when the login button is clicked.
      */
     private void btnLoginActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnLoginActionPerformed
-        String username = jTextFieldLoginUsername.getText().trim().toLowerCase(); // Convert to lowercase
-        String password = new String(jPasswordFieldLoginPassword.getPassword()).trim();
-
+        String username = jTextFieldLoginUsername.getText().trim();
+        String password = new String(jPasswordFieldLoginPassword.getPassword());
         if (username.isEmpty() || password.isEmpty()) {
             jLabelLoginError.setText("Username or password is incorrect.");
             return;
         }
-
-        String userFullName = credentialManager.validateLogin(username, password);
-        if (userFullName != null) {
-            MainPage mainPage = new MainPage(userFullName);
+        boolean ok = authService.login(username, password);
+        if (ok) {
+            MainPage mainPage = new MainPage();
             mainPage.setVisible(true);
             dispose();
         } else {
             jLabelLoginError.setText("Username or password is incorrect.");
         }
-
     }//GEN-LAST:event_btnLoginActionPerformed
 
     /**

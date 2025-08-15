@@ -18,7 +18,9 @@ public class UcanaccessCourseDAO implements CourseDAO {
         final String sql = "SELECT c.courseId, c.courseCode, c.courseName, c.gradeLevel, " +
                 "COUNT(sc.studentId) AS studentCount " +
                 "FROM tblCourses c LEFT JOIN tblStudentCourses sc ON c.courseId = sc.courseId " +
-                "WHERE c.gradeLevel = ? GROUP BY c.courseId, c.courseCode, c.courseName, c.gradeLevel ORDER BY c.courseName";
+                "WHERE c.gradeLevel = ? " +
+                "GROUP BY c.courseId, c.courseCode, c.courseName, c.gradeLevel " +
+                "ORDER BY c.courseName";
         try (Connection c = Db.get(); PreparedStatement ps = c.prepareStatement(sql)) {
             ps.setInt(1, gradeLevel);
             try (ResultSet rs = ps.executeQuery()) {

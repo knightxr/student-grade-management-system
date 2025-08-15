@@ -1,84 +1,56 @@
 package sgms.util;
 
-import java.util.Arrays;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.util.regex.Pattern;
 import javax.swing.JButton;
 import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.RowFilter;
-import javax.swing.RowSorter;
 import javax.swing.table.TableModel;
 import javax.swing.table.TableRowSorter;
 
-/**
- * Utility methods to enable simple text based searching on tables.
- */
+/** Simple text search for a JTable using its existing sorter. */
 public final class SearchUtil {
 
-    private SearchUtil() {
-    }
+    private SearchUtil() { }
 
-    /**
-     * Installs listeners on the provided text field and button to filter the
-     * contents of the table when triggered. Filtering is case-insensitive and
-     * matches any column.
-     *
-     * @param table the table to filter
-     * @param searchField the text field containing the search query
-     * @param searchButton the button used to trigger the search
-     */
-    public static void installSearch(JTable table, JTextField searchField, JButton searchButton) {
-        Runnable action = () -> applyFilter(table, searchField.getText());
-        searchButton.addActionListener(e -> action.run());
-        searchField.addActionListener(e -> action.run());
-    }
+    /** Call this after the table model is set. */
+    public static void installSearch(final JTable table,
+                                     final JTextField field,
+                                     final JButton button) {
 
-    /**
-     * Applies a filter to the table based on the provided text. When the text
-     * is empty or matches the placeholder value "Search", any existing filter
-     * is cleared.
-     *
-     * @param table the table whose rows should be filtered
-     * @param text the search text
-     */
-    public static void applyFilter(JTable table, String text) {
-        RowSorter<? extends TableModel> sorter = table.getRowSorter();
-        if (!(sorter instanceof TableRowSorter)) {
-            // Ensure the table actually has a TableRowSorter to filter
-            TableRowSorter<TableModel> trs = new TableRowSorter<>(table.getModel());
-            table.setRowSorter(trs);
-            sorter = trs;
-        }
-
-        @SuppressWarnings("unchecked")
-        TableRowSorter<TableModel> rowSorter = (TableRowSorter<TableModel>) sorter;
-
-        if (text == null || text.trim().isEmpty() || "Search".equals(text)) {
-            rowSorter.setRowFilter(null);
-            return;
-        }
-
-        final String[] parts = Arrays.stream(text.split("\\s+"))
-                .map(String::toLowerCase)
-                .toArray(String[]::new);
-
-        rowSorter.setRowFilter(new RowFilter<TableModel, Integer>() {
+        ActionListener action = new ActionListener() {
             @Override
-            public boolean include(RowFilter.Entry<? extends TableModel, ? extends Integer> entry) {
-                StringBuilder sb = new StringBuilder();
-                for (int i = 0; i < entry.getValueCount(); i++) {
-                    Object v = entry.getValue(i);
-                    if (v != null) {
-                        sb.append(v).append(' ');
-                    }
-                }
-                String rowText = sb.toString().toLowerCase().replace(",", "");
-                for (String p : parts) {
-                    if (!rowText.contains(p)) {
-                        return false;
-                    }
-                }
-                return true;
+            public void actionPerformed(ActionEvent e) {
+                applyFilter(table, field.getText());
             }
-        });
+        };
+
+        button.addActionListener(action);
+        field.addActionListener(action);
+    }
+
+    private static void applyFilter(JTable table, String text) {
+        // Use existing sorter if present; otherwise create one once
+        if (!(table.getRowSorter() instanceof TableRowSorter)) {
+            TableRowSorter<TableModel> sorter =
+                    new TableRowSorter<TableModel>(table.getModel());
+            table.setRowSorter(sorter);
+        }
+
+        TableRowSorter<?> sorter = (TableRowSorter<?>) table.getRowSorter();
+
+        if (text == null || text.trim().isEmpty()) {
+            sorter.setRowFilter(null);
+        } else {
+            String q = text.trim();
+            sorter.setRowFilter(RowFilter.regexFilter("(?i)" + Pattern.quote(q)));
+        }
+
+        // Make sure the table refreshes its view
+        table.clearSelection();
+        table.revalidate();
+        table.repaint();
     }
 }

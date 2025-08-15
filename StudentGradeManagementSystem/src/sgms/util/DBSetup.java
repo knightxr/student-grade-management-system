@@ -4,6 +4,8 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 
+import sgms.dao.Db;
+
 /**
  * One-off schema bootstrapper. Run this class ONCE to create the empty tables
  * inside School.accdb. Afterwards do NOT run again or you will get “table
@@ -12,7 +14,7 @@ import java.sql.Statement;
 public class DBSetup {
 
     public static void main(String[] args) {
-        try (Connection c = DBManager.get(); Statement s = c.createStatement()) {
+        try (Connection c = Db.get(); Statement s = c.createStatement()) {
 
             // 1 ───────── USERS ────────────────────────────────────────────────
             s.executeUpdate("""

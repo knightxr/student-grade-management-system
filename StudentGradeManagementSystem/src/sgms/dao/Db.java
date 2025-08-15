@@ -1,7 +1,7 @@
 package sgms.dao;
 
 public final class Db {
-    private static final String URL = "jdbc:ucanaccess://C:/Path/To/School.accdb"; // TODO: set real path
+    private static final String URL = "jdbc:ucanaccess://src/sgms/data/School.accdb";
 
     private Db() {}
 

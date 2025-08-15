@@ -2,7 +2,7 @@ package sgms.dao.impl;
 
 import sgms.dao.AssignmentDAO;
 import sgms.model.Assignment;
-import sgms.util.DBManager;
+import sgms.dao.Db;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -15,7 +15,7 @@ public class UcanaccessAssignmentDAO implements AssignmentDAO {
     @Override
     public Assignment add(Assignment a) throws SQLException {
         final String sql = "INSERT INTO tblAssignments(courseId, title, maxMarks, term, dueDate) VALUES (?,?,?,?,?)";
-        try (Connection c = DBManager.get(); PreparedStatement ps = c.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+        try (Connection c = Db.get(); PreparedStatement ps = c.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             ps.setInt(1, a.getCourseId());
             ps.setString(2, a.getTitle());
             if (a.getMaxMarks() != null) {
@@ -38,7 +38,7 @@ public class UcanaccessAssignmentDAO implements AssignmentDAO {
     @Override
     public void update(Assignment a) throws SQLException {
         final String sql = "UPDATE tblAssignments SET title=?, maxMarks=?, term=?, dueDate=? WHERE assignmentId=?";
-        try (Connection c = DBManager.get(); PreparedStatement ps = c.prepareStatement(sql)) {
+        try (Connection c = Db.get(); PreparedStatement ps = c.prepareStatement(sql)) {
             ps.setString(1, a.getTitle());
             if (a.getMaxMarks() != null) {
                 ps.setInt(2, a.getMaxMarks());
@@ -56,7 +56,7 @@ public class UcanaccessAssignmentDAO implements AssignmentDAO {
     public boolean delete(int assignmentId) throws SQLException {
         final String delGrades = "DELETE FROM tblGrades WHERE assignmentId = ?";
         final String delAssign = "DELETE FROM tblAssignments WHERE assignmentId = ?";
-        try (Connection c = DBManager.get();
+        try (Connection c = Db.get();
              PreparedStatement psGrades = c.prepareStatement(delGrades);
              PreparedStatement psAssign = c.prepareStatement(delAssign)) {
             psGrades.setInt(1, assignmentId);
@@ -69,7 +69,7 @@ public class UcanaccessAssignmentDAO implements AssignmentDAO {
     @Override
     public List<Assignment> findByCourse(int courseId) throws SQLException {
         final String sql = "SELECT assignmentId, courseId, title, maxMarks, term, dueDate FROM tblAssignments WHERE courseId = ? ORDER BY assignmentId";
-        try (Connection c = DBManager.get(); PreparedStatement ps = c.prepareStatement(sql)) {
+        try (Connection c = Db.get(); PreparedStatement ps = c.prepareStatement(sql)) {
             ps.setInt(1, courseId);
             try (ResultSet rs = ps.executeQuery()) {
                 List<Assignment> list = new ArrayList<>();

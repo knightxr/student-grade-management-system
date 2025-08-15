@@ -5,224 +5,114 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
+import sgms.dao.Db;
+
 /**
  * Simple credential manager backed by the Access database. This implementation
  * is temporary and should be replaced with a more secure solution in
  * production.
  */
-public class CredentialManager {
+public final class CredentialManager {
 
-    /**
-     * Creates a new {@code CredentialManager}.
-     */
-    public CredentialManager() {
+    private CredentialManager() {
     }
 
-    /**
-     * Validates the provided username and password.
-     *
-     * @return the username if credentials are correct; otherwise {@code null}
-     */
-    public String validateLogin(String username, String password) {
-        username = username.trim().toLowerCase();
-        password = hashPassword(password.trim());
-        String sql = "SELECT fullName FROM tblUsers WHERE username=? AND passwordHash=?";
-        Connection c = null;
-        PreparedStatement ps = null;
-        ResultSet rs = null;
-        try {
-            c = DBManager.get();
-            ps = c.prepareStatement(sql);
-            ps.setString(1, username);
-            ps.setString(2, password);
-            rs = ps.executeQuery();
-            if (rs.next()) {
-                return rs.getString("fullName");
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        } finally {
-            try {
-                if (rs != null) {
-                    rs.close();
-                }
-            } catch (SQLException ignored) {
-            }
-            try {
-                if (ps != null) {
-                    ps.close();
-                }
-            } catch (SQLException ignored) {
-            }
-            try {
-                if (c != null) {
-                    c.close();
-                }
-            } catch (SQLException ignored) {
-            }
+    public static boolean validateLogin(String username, String password) {
+        if (username == null || username.trim().isEmpty()) {
+            return false;
         }
-        return null;
+        if (password == null || password.isEmpty()) {
+            return false;
+        }
+
+        final String sql = "SELECT passwordHash FROM tblUsers WHERE LOWER(username) = LOWER(?)";
+        try (Connection c = Db.get(); PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setString(1, username.trim());
+            try (ResultSet rs = ps.executeQuery()) {
+                if (!rs.next()) {
+                    return false;
+                }
+                String stored = rs.getString(1);
+                return matchesPassword(password, stored);
+            }
+        } catch (SQLException e) {
+            System.err.println("[validateLogin] " + e.getMessage());
+            return false;
+        }
     }
 
-    /**
-     * Checks whether a username already exists in the database.
-     */
-    public boolean isUsernameExists(String username) {
-        username = username.trim().toLowerCase();
+    public static boolean isUsernameExists(String username) {
+        if (!isValidUsername(username)) {
+            return false;
+        }
         String sql = "SELECT 1 FROM tblUsers WHERE username=?";
-        Connection c = null;
-        PreparedStatement ps = null;
-        ResultSet rs = null;
-        try {
-            c = DBManager.get();
-            ps = c.prepareStatement(sql);
-            ps.setString(1, username);
-            rs = ps.executeQuery();
-            return rs.next();
+        try (Connection c = Db.get(); PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setString(1, username.trim().toLowerCase());
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
         } catch (SQLException e) {
             e.printStackTrace();
-        } finally {
-            try {
-                if (rs != null) {
-                    rs.close();
-                }
-            } catch (SQLException ignored) {
-            }
-            try {
-                if (ps != null) {
-                    ps.close();
-                }
-            } catch (SQLException ignored) {
-            }
-            try {
-                if (c != null) {
-                    c.close();
-                }
-            } catch (SQLException ignored) {
-            }
         }
         return false;
     }
 
-    /**
-     * Adds a new user to the database.
-     */
-    public boolean addUser(String name, String username, String password) {
-        username = username.trim().toLowerCase();
-        password = password.trim();
-        if (isUsernameExists(username)) {
+    public static boolean addUser(String name, String username, String password) {
+        if (!isValidUsername(username) || !isValidPassword(password)) {
             return false;
         }
         String sql = "INSERT INTO tblUsers (fullName, username, passwordHash) VALUES (?, ?, ?)";
-        Connection c = null;
-        PreparedStatement ps = null;
-        try {
-            c = DBManager.get();
-            ps = c.prepareStatement(sql);
+        try (Connection c = Db.get(); PreparedStatement ps = c.prepareStatement(sql)) {
             ps.setString(1, name);
-            ps.setString(2, username);
-            ps.setString(3, hashPassword(password));
+            ps.setString(2, username.trim().toLowerCase());
+            ps.setString(3, hashPassword(password.trim()));
             return ps.executeUpdate() == 1;
         } catch (SQLException e) {
             e.printStackTrace();
-        } finally {
-            try {
-                if (ps != null) {
-                    ps.close();
-                }
-            } catch (SQLException ignored) {
-            }
-            try {
-                if (c != null) {
-                    c.close();
-                }
-            } catch (SQLException ignored) {
-            }
         }
         return false;
     }
 
-    /**
-     * Resets the password for the given username.
-     */
-    public boolean resetPassword(String username, String newPassword) {
-        username = username.trim().toLowerCase();
-        newPassword = hashPassword(newPassword.trim());
+    public static boolean resetPassword(String username, String newPassword) {
+        if (!isValidUsername(username) || !isValidPassword(newPassword)) {
+            return false;
+        }
         String sql = "UPDATE tblUsers SET passwordHash=? WHERE username=?";
-        Connection c = null;
-        PreparedStatement ps = null;
-        try {
-            c = DBManager.get();
-            ps = c.prepareStatement(sql);
-            ps.setString(1, newPassword);
-            ps.setString(2, username);
+        try (Connection c = Db.get(); PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setString(1, hashPassword(newPassword.trim()));
+            ps.setString(2, username.trim().toLowerCase());
             return ps.executeUpdate() == 1;
         } catch (SQLException e) {
             e.printStackTrace();
-        } finally {
-            try {
-                if (ps != null) {
-                    ps.close();
-                }
-            } catch (SQLException ignored) {
-            }
-            try {
-                if (c != null) {
-                    c.close();
-                }
-            } catch (SQLException ignored) {
-            }
         }
         return false;
     }
 
-    /**
-     * Verifies the administrator password against the entry stored in the
-     * database. The administrator account uses the fixed username "admin" and
-     * the role {@code Administrator}.
-     */
-    public boolean isAdminPassword(String adminPassword) {
+    public static boolean isAdminPassword(String adminPassword) {
+        if (!isValidPassword(adminPassword)) {
+            return false;
+        }
         String sql = "SELECT 1 FROM tblUsers WHERE username=? AND passwordHash=? AND role='Administrator'";
-        Connection c = null;
-        PreparedStatement ps = null;
-        ResultSet rs = null;
-        try {
-            c = DBManager.get();
-            ps = c.prepareStatement(sql);
+        try (Connection c = Db.get(); PreparedStatement ps = c.prepareStatement(sql)) {
             ps.setString(1, "admin");
             ps.setString(2, hashPassword(adminPassword.trim()));
-            rs = ps.executeQuery();
-            return rs.next();
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
         } catch (SQLException e) {
             e.printStackTrace();
-        } finally {
-            try {
-                if (rs != null) {
-                    rs.close();
-                }
-            } catch (SQLException ignored) {
-            }
-            try {
-                if (ps != null) {
-                    ps.close();
-                }
-            } catch (SQLException ignored) {
-            }
-            try {
-                if (c != null) {
-                    c.close();
-                }
-            } catch (SQLException ignored) {
-            }
         }
         return false;
     }
 
-    /**
-     * Returns a simple hash of the provided password. This implementation uses
-     * basic arithmetic so that the hashed value cannot be read directly from
-     * the database.
-     */
+    private static boolean isValidUsername(String s) {
+        return s != null && s.matches("[A-Za-z0-9_]{4,20}");
+    }
+
+    private static boolean isValidPassword(String s) {
+        return s != null && s.length() >= 6;
+    }
+
     private static String hashPassword(String password) {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < password.length(); i++) {
@@ -230,5 +120,39 @@ public class CredentialManager {
             sb.append(Integer.toHexString(value));
         }
         return sb.toString();
+    }
+
+    private static boolean matchesPassword(String plain, String stored) {
+        if (stored == null) {
+            return false;
+        }
+        if (stored.equals(hashPassword(plain))) {
+            return true;
+        }
+        if (stored.equals(plain)) {
+            return true;
+        }
+        try {
+            String legacy = trySimpleDecode(stored);
+            if (plain.equals(legacy)) {
+                return true;
+            }
+        } catch (Exception ignore) {
+        }
+        return false;
+    }
+
+    private static String trySimpleDecode(String s) {
+        try {
+            byte[] raw = java.util.Base64.getDecoder().decode(s);
+            char key = 0x3A;
+            char[] out = new char[raw.length];
+            for (int i = 0; i < raw.length; i++) {
+                out[i] = (char) (raw[i] ^ key);
+            }
+            return new String(out);
+        } catch (Exception e) {
+            return s;
+        }
     }
 }

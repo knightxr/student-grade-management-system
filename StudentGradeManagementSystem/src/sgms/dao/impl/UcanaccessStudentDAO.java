@@ -87,7 +87,7 @@ public class UcanaccessStudentDAO implements StudentDAO {
     @Override
     public List<Student> findAll() throws SQLException {
         String sql = "SELECT * FROM tblStudents ORDER BY lastName";
-        try (Connection c = Db.get(); Statement st = c.createStatement(); ResultSet rs = st.executeQuery(sql)) {
+        try (Connection c = Db.get(); PreparedStatement ps = c.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
             List<Student> list = new ArrayList<>();
             while (rs.next()) {
                 list.add(map(rs));
@@ -116,7 +116,7 @@ public class UcanaccessStudentDAO implements StudentDAO {
     @Override
     public List<Integer> findGradeLevels() throws SQLException {
         String sql = "SELECT DISTINCT gradeLevel FROM tblStudents ORDER BY gradeLevel";
-        try (Connection c = Db.get(); Statement st = c.createStatement(); ResultSet rs = st.executeQuery(sql)) {
+        try (Connection c = Db.get(); PreparedStatement ps = c.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
             List<Integer> grades = new ArrayList<>();
             while (rs.next()) {
                 grades.add(rs.getInt("gradeLevel"));
@@ -129,7 +129,7 @@ public class UcanaccessStudentDAO implements StudentDAO {
     @Override
     public List<Course> findCourses() throws SQLException {
         String sql = "SELECT courseId, courseCode, courseName, gradeLevel FROM tblCourses ORDER BY courseName";
-        try (Connection c = Db.get(); Statement st = c.createStatement(); ResultSet rs = st.executeQuery(sql)) {
+        try (Connection c = Db.get(); PreparedStatement ps = c.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
             List<Course> courses = new ArrayList<>();
             while (rs.next()) {
                 courses.add(new Course(rs.getInt("courseId"),
@@ -193,13 +193,14 @@ public class UcanaccessStudentDAO implements StudentDAO {
 
     // make sure the join table exists
     private void ensureEnrollmentTableExists(Connection c) throws SQLException {
-        try (Statement st = c.createStatement()) {
-            st.executeUpdate("CREATE TABLE tblStudentCourses (" +
-                    "studentId INTEGER NOT NULL," +
-                    "courseId INTEGER NOT NULL," +
-                    "PRIMARY KEY (studentId, courseId)," +
-                    "FOREIGN KEY (studentId) REFERENCES tblStudents(studentId)," +
-                    "FOREIGN KEY (courseId) REFERENCES tblCourses(courseId))");
+        String ddl = "CREATE TABLE tblStudentCourses (" +
+                "studentId INTEGER NOT NULL," +
+                "courseId INTEGER NOT NULL," +
+                "PRIMARY KEY (studentId, courseId)," +
+                "FOREIGN KEY (studentId) REFERENCES tblStudents(studentId)," +
+                "FOREIGN KEY (courseId) REFERENCES tblCourses(courseId))";
+        try (PreparedStatement ps = c.prepareStatement(ddl)) {
+            ps.executeUpdate();
         } catch (SQLException ex) {
             if (!ex.getMessage().contains("already exists")) {
                 throw ex;

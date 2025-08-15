@@ -1,7 +1,7 @@
 package sgms.dao.impl;
 
 import sgms.dao.FeedbackDAO;
-import sgms.util.DBManager;
+import sgms.dao.Db;
 import java.sql.*;
 import java.util.HashMap;
 import java.util.Map;
@@ -13,7 +13,7 @@ public class UcanaccessFeedbackDAO implements FeedbackDAO {
     public Map<Integer, String> findByCourse(int courseId) throws SQLException {
         final String sql = "SELECT studentId, note FROM tblFeedback WHERE courseId = ?";
         Map<Integer, String> map = new HashMap<>();
-        try (Connection c = DBManager.get(); PreparedStatement ps = c.prepareStatement(sql)) {
+        try (Connection c = Db.get(); PreparedStatement ps = c.prepareStatement(sql)) {
             ps.setInt(1, courseId);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
@@ -28,7 +28,7 @@ public class UcanaccessFeedbackDAO implements FeedbackDAO {
     public void upsert(int studentId, int courseId, String note) throws SQLException {
         final String update = "UPDATE tblFeedback SET note = ?, entryDate = DATE() WHERE studentId = ? AND courseId = ?";
         final String insert = "INSERT INTO tblFeedback(studentId, courseId, note) VALUES (?,?,?)";
-        try (Connection c = DBManager.get();
+        try (Connection c = Db.get();
              PreparedStatement psUpdate = c.prepareStatement(update);
              PreparedStatement psInsert = c.prepareStatement(insert)) {
             psUpdate.setString(1, note);
@@ -46,7 +46,7 @@ public class UcanaccessFeedbackDAO implements FeedbackDAO {
     @Override
     public void delete(int studentId, int courseId) throws SQLException {
         final String sql = "DELETE FROM tblFeedback WHERE studentId = ? AND courseId = ?";
-        try (Connection c = DBManager.get(); PreparedStatement ps = c.prepareStatement(sql)) {
+        try (Connection c = Db.get(); PreparedStatement ps = c.prepareStatement(sql)) {
             ps.setInt(1, studentId);
             ps.setInt(2, courseId);
             ps.executeUpdate();

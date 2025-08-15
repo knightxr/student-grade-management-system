@@ -1,7 +1,7 @@
 package sgms.ui;
 
 import javax.swing.JOptionPane;
-import sgms.util.CredentialManager;
+import sgms.service.AuthService;
 
 /**
  * @author Jacques Smit
@@ -11,14 +11,14 @@ import sgms.util.CredentialManager;
  */
 public class ForgotPasswordPage extends javax.swing.JFrame {
 
-    private CredentialManager credentialManager;
+    private AuthService authService;
 
     /**
-     * Initializes the ForgotPasswordPage and sets up the CredentialManager.
+     * Initializes the ForgotPasswordPage and sets up the AuthService.
      */
     public ForgotPasswordPage() {
         initComponents();
-        credentialManager = new CredentialManager();
+        authService = new AuthService();
         setResizable(false);
     }
 
@@ -236,13 +236,16 @@ public class ForgotPasswordPage extends javax.swing.JFrame {
             jLabelLoginError.setText("Please fill in all fields.");
             return;
         }
-
-         if (!credentialManager.isAdminPassword(adminPassword)) {
+        if (!username.matches("[A-Za-z0-9_]{4,20}") || newPassword.length() < 6) {
+            jLabelLoginError.setText("Invalid username or password format.");
+            return;
+        }
+        if (!authService.isAdminPassword(adminPassword)) {
             jLabelLoginError.setText("Incorrect administrator password.");
             return;
         }
 
-        if (credentialManager.resetPassword(username, newPassword)) {
+        if (authService.reset(username, newPassword)) {
             JOptionPane.showMessageDialog(null,
                     "Password successfully updated. You can now use it to log in.",
                     "Success",

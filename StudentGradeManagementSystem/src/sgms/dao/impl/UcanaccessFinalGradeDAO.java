@@ -2,7 +2,7 @@ package sgms.dao.impl;
 
 import sgms.dao.FinalGradeDAO;
 import sgms.model.FinalGrade;
-import sgms.util.DBManager;
+import sgms.dao.Db;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -29,7 +29,7 @@ public class UcanaccessFinalGradeDAO implements FinalGradeDAO {
             GROUP BY s.firstName, s.lastName, s.studentId
             ORDER BY s.lastName
         """;
-        try (Connection c = DBManager.get(); PreparedStatement ps = c.prepareStatement(sql)) {
+        try (Connection c = Db.get(); PreparedStatement ps = c.prepareStatement(sql)) {
             ps.setInt(1, gradeLevel);
             try (ResultSet rs = ps.executeQuery()) {
                 List<FinalGrade> list = new ArrayList<>();
@@ -79,7 +79,7 @@ public class UcanaccessFinalGradeDAO implements FinalGradeDAO {
     @Override
     public List<Integer> findGradeLevels() throws SQLException {
         final String sql = "SELECT DISTINCT gradeLevel FROM tblStudents ORDER BY gradeLevel";
-        try (Connection c = DBManager.get(); Statement st = c.createStatement(); ResultSet rs = st.executeQuery(sql)) {
+        try (Connection c = Db.get(); PreparedStatement ps = c.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
             List<Integer> grades = new ArrayList<>();
             while (rs.next()) {
                 grades.add(rs.getInt(1));

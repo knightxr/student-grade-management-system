@@ -1,7 +1,7 @@
 package sgms.ui;
 
 import javax.swing.JOptionPane;
-import sgms.util.CredentialManager;
+import sgms.service.AuthService;
 
 /**
  * @author Jacques Smit
@@ -10,11 +10,11 @@ import sgms.util.CredentialManager;
  * administrator password for authorization.
  */
 public class SignupPage extends javax.swing.JFrame {
-    private final CredentialManager credentialManager;
+    private final AuthService authService;
 
     public SignupPage() {
         initComponents();
-        credentialManager = new CredentialManager();
+        authService = new AuthService();
         setResizable(false);
     }
     
@@ -255,18 +255,22 @@ public class SignupPage extends javax.swing.JFrame {
             jLabelErrorText.setText("Please fill in all fields.");
             return;
         }
+        if (!username.matches("[A-Za-z0-9_]{4,20}") || userPassword.length() < 6) {
+            jLabelErrorText.setText("Invalid username or password format.");
+            return;
+        }
 
-        if (!credentialManager.isAdminPassword(adminPassword)) {
+        if (!authService.isAdminPassword(adminPassword)) {
             jLabelErrorText.setText("Incorrect administrator password.");
             return;
         }
 
-        if (credentialManager.isUsernameExists(username)) {
+        if (authService.isUsernameExists(username)) {
             jLabelErrorText.setText("Username already exists. Please choose another.");
             return;
         }
 
-        if (credentialManager.addUser(name, username, userPassword)) {
+        if (authService.signup(name, username, userPassword)) {
             JOptionPane.showMessageDialog(null,
                     "Account successfully created. You can now use it to log in.",
                     "Success",

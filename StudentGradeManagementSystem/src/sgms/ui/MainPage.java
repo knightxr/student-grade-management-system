@@ -99,10 +99,13 @@ public class MainPage extends javax.swing.JFrame {
     }
     
     private void installContextTracking() {
-        java.awt.event.ActionListener tracker = e -> {
-            Object src = e.getSource();
-            if (src instanceof javax.swing.JButton btn && btn != jButtonHelp) {
-                lastActionButton = btn;
+        java.awt.event.ActionListener tracker = new java.awt.event.ActionListener() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+                Object src = e.getSource();
+                if (src instanceof javax.swing.JButton && src != jButtonHelp) {
+                    lastActionButton = (javax.swing.JButton) src;
+                }
             }
         };
         javax.swing.JButton[] buttons = {
@@ -1477,7 +1480,6 @@ private void loadCourses() {
             sorter.setSortKeys(List.of(new RowSorter.SortKey(2, SortOrder.ASCENDING)));
             selectionMode = false;
             studentSelectionModel = null;
-            SearchUtil.applyFilter(jTable, jTextFieldSearch.getText());
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this, "Unable to load students: " + ex.getMessage(),
                     "Error", JOptionPane.ERROR_MESSAGE);
@@ -1507,7 +1509,6 @@ private void loadCourses() {
                     new RowSorter.SortKey(3, SortOrder.ASCENDING),
                     new RowSorter.SortKey(2, SortOrder.ASCENDING)));
             selectionMode = true;
-            SearchUtil.applyFilter(jTable, jTextFieldSearch.getText());
             setActiveButton(jButtonViewStudents);
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this, "Unable to load students: " + ex.getMessage(),
@@ -1533,7 +1534,6 @@ private void loadCourses() {
             jTable.setAutoCreateRowSorter(true);
             TableRowSorter<?> sorter = (TableRowSorter<?>) jTable.getRowSorter();
             sorter.setSortKeys(List.of(new RowSorter.SortKey(0, SortOrder.ASCENDING)));
-            SearchUtil.applyFilter(jTable, jTextFieldSearch.getText());
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this, "Unable to load grades: " + ex.getMessage(),
                     "Error", JOptionPane.ERROR_MESSAGE);
@@ -1557,7 +1557,6 @@ private void loadCourses() {
             jTable.setAutoCreateRowSorter(true);
             TableRowSorter<?> sorter = (TableRowSorter<?>) jTable.getRowSorter();
             sorter.setSortKeys(List.of(new RowSorter.SortKey(1, SortOrder.ASCENDING)));
-            SearchUtil.applyFilter(jTable, jTextFieldSearch.getText());
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this, "Unable to load final grades: " + ex.getMessage(),
                     "Error", JOptionPane.ERROR_MESSAGE);
@@ -1651,7 +1650,6 @@ private void loadCourses() {
             assignmentDeleteColumn = jTable.getColumnModel().getColumn(0);
             jTable.removeColumn(assignmentDeleteColumn);
             assignmentDeleteMode = false;
-            SearchUtil.applyFilter(jTable, jTextFieldSearch.getText());
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this, "Unable to load assignments: " + ex.getMessage(),
                     "Error", JOptionPane.ERROR_MESSAGE);
@@ -1700,7 +1698,6 @@ private void loadCourses() {
             if (attendanceTodayColumn < 1 || attendanceTodayColumn > 5) {
                 attendanceTodayColumn = -1;
             }
-            SearchUtil.applyFilter(jTable, jTextFieldSearch.getText());
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this, "Unable to load attendance: " + ex.getMessage(),
                     "Error", JOptionPane.ERROR_MESSAGE);
@@ -1741,7 +1738,6 @@ private void loadCourses() {
             jTable.setAutoCreateRowSorter(true);
             TableRowSorter<?> sorter = (TableRowSorter<?>) jTable.getRowSorter();
             sorter.setSortKeys(List.of(new RowSorter.SortKey(1, SortOrder.ASCENDING)));
-            SearchUtil.applyFilter(jTable, jTextFieldSearch.getText());
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this, "Unable to load feedback: " + ex.getMessage(),
                     "Error", JOptionPane.ERROR_MESSAGE);

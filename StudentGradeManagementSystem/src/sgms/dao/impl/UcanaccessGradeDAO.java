@@ -1,7 +1,7 @@
 package sgms.dao.impl;
 
 import sgms.dao.GradeDAO;
-import sgms.util.DBManager;
+import sgms.dao.Db;
 import java.sql.*;
 import java.util.HashMap;
 import java.util.Map;
@@ -20,7 +20,7 @@ public class UcanaccessGradeDAO implements GradeDAO {
             WHERE a.courseId = ?
         """;
         Map<Integer, Map<Integer, Integer>> map = new HashMap<>();
-        try (Connection c = DBManager.get(); PreparedStatement ps = c.prepareStatement(sql)) {
+        try (Connection c = Db.get(); PreparedStatement ps = c.prepareStatement(sql)) {
             ps.setInt(1, courseId);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
@@ -38,7 +38,7 @@ public class UcanaccessGradeDAO implements GradeDAO {
     public void upsert(int studentId, int assignmentId, int mark) throws SQLException {
         final String update = "UPDATE tblGrades SET markAwarded = ? WHERE studentId = ? AND assignmentId = ?";
         final String insert = "INSERT INTO tblGrades(studentId, assignmentId, markAwarded) VALUES (?,?,?)";
-        try (Connection c = DBManager.get();
+        try (Connection c = Db.get();
              PreparedStatement psUpdate = c.prepareStatement(update);
              PreparedStatement psInsert = c.prepareStatement(insert)) {
             psUpdate.setInt(1, mark);

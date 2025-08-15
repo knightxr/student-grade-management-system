@@ -12,10 +12,20 @@ import java.util.List;
  */
 public class UcanaccessAssignmentDAO implements AssignmentDAO {
 
+    private static final String INSERT_ASSIGNMENT =
+            "INSERT INTO tblAssignments(courseId, title, maxMarks, term, dueDate) VALUES (?,?,?,?,?)";
+    private static final String UPDATE_ASSIGNMENT =
+            "UPDATE tblAssignments SET title=?, maxMarks=?, term=?, dueDate=? WHERE assignmentId=?";
+    private static final String DELETE_GRADES =
+            "DELETE FROM tblGrades WHERE assignmentId = ?";
+    private static final String DELETE_ASSIGNMENT =
+            "DELETE FROM tblAssignments WHERE assignmentId = ?";
+    private static final String SELECT_BY_COURSE =
+            "SELECT assignmentId, courseId, title, maxMarks, term, dueDate FROM tblAssignments WHERE courseId = ? ORDER BY assignmentId";
+
     @Override
     public Assignment add(Assignment a) throws SQLException {
-        final String sql = "INSERT INTO tblAssignments(courseId, title, maxMarks, term, dueDate) VALUES (?,?,?,?,?)";
-        try (Connection c = Db.get(); PreparedStatement ps = c.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+        try (Connection c = Db.get(); PreparedStatement ps = c.prepareStatement(INSERT_ASSIGNMENT, Statement.RETURN_GENERATED_KEYS)) {
             ps.setInt(1, a.getCourseId());
             ps.setString(2, a.getTitle());
             if (a.getMaxMarks() != null) {
@@ -37,8 +47,7 @@ public class UcanaccessAssignmentDAO implements AssignmentDAO {
 
     @Override
     public void update(Assignment a) throws SQLException {
-        final String sql = "UPDATE tblAssignments SET title=?, maxMarks=?, term=?, dueDate=? WHERE assignmentId=?";
-        try (Connection c = Db.get(); PreparedStatement ps = c.prepareStatement(sql)) {
+        try (Connection c = Db.get(); PreparedStatement ps = c.prepareStatement(UPDATE_ASSIGNMENT)) {
             ps.setString(1, a.getTitle());
             if (a.getMaxMarks() != null) {
                 ps.setInt(2, a.getMaxMarks());
@@ -54,11 +63,9 @@ public class UcanaccessAssignmentDAO implements AssignmentDAO {
     
     @Override
     public boolean delete(int assignmentId) throws SQLException {
-        final String delGrades = "DELETE FROM tblGrades WHERE assignmentId = ?";
-        final String delAssign = "DELETE FROM tblAssignments WHERE assignmentId = ?";
         try (Connection c = Db.get();
-             PreparedStatement psGrades = c.prepareStatement(delGrades);
-             PreparedStatement psAssign = c.prepareStatement(delAssign)) {
+             PreparedStatement psGrades = c.prepareStatement(DELETE_GRADES);
+             PreparedStatement psAssign = c.prepareStatement(DELETE_ASSIGNMENT)) {
             psGrades.setInt(1, assignmentId);
             psGrades.executeUpdate();
             psAssign.setInt(1, assignmentId);
@@ -68,8 +75,7 @@ public class UcanaccessAssignmentDAO implements AssignmentDAO {
 
     @Override
     public List<Assignment> findByCourse(int courseId) throws SQLException {
-        final String sql = "SELECT assignmentId, courseId, title, maxMarks, term, dueDate FROM tblAssignments WHERE courseId = ? ORDER BY assignmentId";
-        try (Connection c = Db.get(); PreparedStatement ps = c.prepareStatement(sql)) {
+        try (Connection c = Db.get(); PreparedStatement ps = c.prepareStatement(SELECT_BY_COURSE)) {
             ps.setInt(1, courseId);
             try (ResultSet rs = ps.executeQuery()) {
                 List<Assignment> list = new ArrayList<>();

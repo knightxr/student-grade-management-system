@@ -19,7 +19,7 @@ SELECT s.studentId, s.firstName, s.lastName,
        c.courseCode,
        a.title, a.maxMarks,
        m.mark,
-       IIF(a.maxMarks > 0, (m.mark * 100.0) / a.maxMarks, NULL) AS pct
+       IIF(a.maxMarks > 0, (m.mark * 100.0)  / a.maxMarks, NULL) AS pct
 FROM ((tblStudents AS s
 INNER JOIN tblEnrollments AS e ON s.studentId = e.studentId)
 INNER JOIN tblCourses AS c ON e.courseId = c.courseId)

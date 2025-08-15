@@ -13,15 +13,20 @@ import java.util.Map;
  */
 public class UcanaccessAttendanceDAO implements AttendanceDAO {
 
-    @Override
-    public Map<Integer, Map<LocalDate, Boolean>> findByCourseAndDateRange(int courseId, LocalDate start, LocalDate end) throws SQLException {
-        final String sql = """
+    private static final String SELECT_BY_COURSE_AND_RANGE = """
             SELECT studentId, attendanceDate, present
             FROM tblAttendance
             WHERE courseId = ? AND attendanceDate BETWEEN ? AND ?
-        """;
+            """;
+    private static final String UPDATE_ATTENDANCE =
+            "UPDATE tblAttendance SET present=? WHERE studentId=? AND courseId=? AND attendanceDate=?";
+    private static final String INSERT_ATTENDANCE =
+            "INSERT INTO tblAttendance(studentId, courseId, attendanceDate, present) VALUES (?,?,?,?)";
+
+    @Override
+    public Map<Integer, Map<LocalDate, Boolean>> findByCourseAndDateRange(int courseId, LocalDate start, LocalDate end) throws SQLException {
         Map<Integer, Map<LocalDate, Boolean>> map = new HashMap<>();
-        try (Connection c = Db.get(); PreparedStatement ps = c.prepareStatement(sql)) {
+        try (Connection c = Db.get(); PreparedStatement ps = c.prepareStatement(SELECT_BY_COURSE_AND_RANGE)) {
             ps.setInt(1, courseId);
             ps.setDate(2, Date.valueOf(start));
             ps.setDate(3, Date.valueOf(end));
@@ -39,11 +44,9 @@ public class UcanaccessAttendanceDAO implements AttendanceDAO {
 
     @Override
     public void upsert(int studentId, int courseId, LocalDate date, boolean present) throws SQLException {
-        final String update = "UPDATE tblAttendance SET present=? WHERE studentId=? AND courseId=? AND attendanceDate=?";
-        final String insert = "INSERT INTO tblAttendance(studentId, courseId, attendanceDate, present) VALUES (?,?,?,?)";
         try (Connection c = Db.get();
-             PreparedStatement psUpdate = c.prepareStatement(update);
-             PreparedStatement psInsert = c.prepareStatement(insert)) {
+             PreparedStatement psUpdate = c.prepareStatement(UPDATE_ATTENDANCE);
+             PreparedStatement psInsert = c.prepareStatement(INSERT_ATTENDANCE)) {
             psUpdate.setBoolean(1, present);
             psUpdate.setInt(2, studentId);
             psUpdate.setInt(3, courseId);

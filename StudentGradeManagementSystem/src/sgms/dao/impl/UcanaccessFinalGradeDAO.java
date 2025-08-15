@@ -13,9 +13,7 @@ import java.math.BigDecimal;
  */
 public class UcanaccessFinalGradeDAO implements FinalGradeDAO {
 
-    @Override
-    public List<FinalGrade> findByGradeLevel(int gradeLevel) throws SQLException {
-        final String sql = """
+    private static final String SELECT_BY_GRADE_LEVEL = """
             SELECT s.firstName, s.lastName,
                    AVG(CASE WHEN a.term = 1 AND g.markAwarded IS NOT NULL THEN g.markAwarded END) AS term1,
                    AVG(CASE WHEN a.term = 2 AND g.markAwarded IS NOT NULL THEN g.markAwarded END) AS term2,
@@ -28,8 +26,13 @@ public class UcanaccessFinalGradeDAO implements FinalGradeDAO {
             WHERE s.gradeLevel = ?
             GROUP BY s.firstName, s.lastName, s.studentId
             ORDER BY s.lastName
-        """;
-        try (Connection c = Db.get(); PreparedStatement ps = c.prepareStatement(sql)) {
+            """;
+    private static final String SELECT_GRADE_LEVELS =
+            "SELECT DISTINCT gradeLevel FROM tblStudents ORDER BY gradeLevel";
+
+    @Override
+    public List<FinalGrade> findByGradeLevel(int gradeLevel) throws SQLException {
+        try (Connection c = Db.get(); PreparedStatement ps = c.prepareStatement(SELECT_BY_GRADE_LEVEL)) {
             ps.setInt(1, gradeLevel);
             try (ResultSet rs = ps.executeQuery()) {
                 List<FinalGrade> list = new ArrayList<>();
@@ -78,8 +81,7 @@ public class UcanaccessFinalGradeDAO implements FinalGradeDAO {
     
     @Override
     public List<Integer> findGradeLevels() throws SQLException {
-        final String sql = "SELECT DISTINCT gradeLevel FROM tblStudents ORDER BY gradeLevel";
-        try (Connection c = Db.get(); PreparedStatement ps = c.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
+        try (Connection c = Db.get(); PreparedStatement ps = c.prepareStatement(SELECT_GRADE_LEVELS); ResultSet rs = ps.executeQuery()) {
             List<Integer> grades = new ArrayList<>();
             while (rs.next()) {
                 grades.add(rs.getInt(1));

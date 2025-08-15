@@ -16,7 +16,7 @@ public final class DBManager {
         try (Connection c = get()) {
             System.out.println("Connected OK");
         } catch (SQLException e) {
-            e.printStackTrace();
+            System.err.println("Connection Failed" + e.getMessage());
         }
     }
 

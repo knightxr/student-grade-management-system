@@ -131,8 +131,7 @@ public class DBSetup {
 
             System.out.println("✅  Schema installed successfully.");
         } catch (SQLException e) {
-            System.err.println("Schema creation failed!");
-            e.printStackTrace();
+            System.err.println("Schema creation failed: " + e.getMessage());
         }
     }
 

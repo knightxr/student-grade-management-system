@@ -11,16 +11,21 @@ import java.util.Map;
  */
 public class UcanaccessGradeDAO implements GradeDAO {
 
-    @Override
-    public Map<Integer, Map<Integer, Integer>> findByCourse(int courseId) throws SQLException {
-        final String sql = """
+    private static final String SELECT_BY_COURSE = """
             SELECT g.studentId, g.assignmentId, g.markAwarded
             FROM tblGrades g
             JOIN tblAssignments a ON g.assignmentId = a.assignmentId
             WHERE a.courseId = ?
-        """;
+            """;
+    private static final String UPDATE_GRADE =
+            "UPDATE tblGrades SET markAwarded = ? WHERE studentId = ? AND assignmentId = ?";
+    private static final String INSERT_GRADE =
+            "INSERT INTO tblGrades(studentId, assignmentId, markAwarded) VALUES (?,?,?)";
+
+    @Override
+    public Map<Integer, Map<Integer, Integer>> findByCourse(int courseId) throws SQLException {
         Map<Integer, Map<Integer, Integer>> map = new HashMap<>();
-        try (Connection c = Db.get(); PreparedStatement ps = c.prepareStatement(sql)) {
+        try (Connection c = Db.get(); PreparedStatement ps = c.prepareStatement(SELECT_BY_COURSE)) {
             ps.setInt(1, courseId);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
@@ -36,11 +41,9 @@ public class UcanaccessGradeDAO implements GradeDAO {
 
     @Override
     public void upsert(int studentId, int assignmentId, int mark) throws SQLException {
-        final String update = "UPDATE tblGrades SET markAwarded = ? WHERE studentId = ? AND assignmentId = ?";
-        final String insert = "INSERT INTO tblGrades(studentId, assignmentId, markAwarded) VALUES (?,?,?)";
         try (Connection c = Db.get();
-             PreparedStatement psUpdate = c.prepareStatement(update);
-             PreparedStatement psInsert = c.prepareStatement(insert)) {
+             PreparedStatement psUpdate = c.prepareStatement(UPDATE_GRADE);
+             PreparedStatement psInsert = c.prepareStatement(INSERT_GRADE)) {
             psUpdate.setInt(1, mark);
             psUpdate.setInt(2, studentId);
             psUpdate.setInt(3, assignmentId);

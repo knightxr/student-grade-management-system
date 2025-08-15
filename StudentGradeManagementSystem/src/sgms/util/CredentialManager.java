@@ -17,6 +17,17 @@ public final class CredentialManager {
     private CredentialManager() {
     }
 
+    private static final String SQL_VALIDATE_LOGIN =
+            "SELECT passwordHash FROM tblUsers WHERE LOWER(username) = LOWER(?)";
+    private static final String SQL_CHECK_USERNAME =
+            "SELECT 1 FROM tblUsers WHERE username=?";
+    private static final String SQL_ADD_USER =
+            "INSERT INTO tblUsers (fullName, username, passwordHash) VALUES (?, ?, ?)";
+    private static final String SQL_RESET_PASSWORD =
+            "UPDATE tblUsers SET passwordHash=? WHERE username=?";
+    private static final String SQL_IS_ADMIN_PASSWORD =
+            "SELECT 1 FROM tblUsers WHERE username=? AND passwordHash=? AND role='Administrator'";
+
     public static boolean validateLogin(String username, String password) {
         if (username == null || username.trim().isEmpty()) {
             return false;
@@ -25,8 +36,7 @@ public final class CredentialManager {
             return false;
         }
 
-        final String sql = "SELECT passwordHash FROM tblUsers WHERE LOWER(username) = LOWER(?)";
-        try (Connection c = Db.get(); PreparedStatement ps = c.prepareStatement(sql)) {
+        try (Connection c = Db.get(); PreparedStatement ps = c.prepareStatement(SQL_VALIDATE_LOGIN)) {
             ps.setString(1, username.trim());
             try (ResultSet rs = ps.executeQuery()) {
                 if (!rs.next()) {
@@ -45,14 +55,13 @@ public final class CredentialManager {
         if (!isValidUsername(username)) {
             return false;
         }
-        String sql = "SELECT 1 FROM tblUsers WHERE username=?";
-        try (Connection c = Db.get(); PreparedStatement ps = c.prepareStatement(sql)) {
+        try (Connection c = Db.get(); PreparedStatement ps = c.prepareStatement(SQL_CHECK_USERNAME)) {
             ps.setString(1, username.trim().toLowerCase());
             try (ResultSet rs = ps.executeQuery()) {
                 return rs.next();
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            System.err.println("[isUsernameExists] " + e.getMessage());
         }
         return false;
     }
@@ -61,14 +70,13 @@ public final class CredentialManager {
         if (!isValidUsername(username) || !isValidPassword(password)) {
             return false;
         }
-        String sql = "INSERT INTO tblUsers (fullName, username, passwordHash) VALUES (?, ?, ?)";
-        try (Connection c = Db.get(); PreparedStatement ps = c.prepareStatement(sql)) {
+        try (Connection c = Db.get(); PreparedStatement ps = c.prepareStatement(SQL_ADD_USER)) {
             ps.setString(1, name);
             ps.setString(2, username.trim().toLowerCase());
             ps.setString(3, hashPassword(password.trim()));
             return ps.executeUpdate() == 1;
         } catch (SQLException e) {
-            e.printStackTrace();
+            System.err.println("[addUser] " + e.getMessage());
         }
         return false;
     }
@@ -77,13 +85,12 @@ public final class CredentialManager {
         if (!isValidUsername(username) || !isValidPassword(newPassword)) {
             return false;
         }
-        String sql = "UPDATE tblUsers SET passwordHash=? WHERE username=?";
-        try (Connection c = Db.get(); PreparedStatement ps = c.prepareStatement(sql)) {
+        try (Connection c = Db.get(); PreparedStatement ps = c.prepareStatement(SQL_RESET_PASSWORD)) {
             ps.setString(1, hashPassword(newPassword.trim()));
             ps.setString(2, username.trim().toLowerCase());
             return ps.executeUpdate() == 1;
         } catch (SQLException e) {
-            e.printStackTrace();
+            System.err.println("[resetPassword] " + e.getMessage());
         }
         return false;
     }
@@ -92,15 +99,14 @@ public final class CredentialManager {
         if (!isValidPassword(adminPassword)) {
             return false;
         }
-        String sql = "SELECT 1 FROM tblUsers WHERE username=? AND passwordHash=? AND role='Administrator'";
-        try (Connection c = Db.get(); PreparedStatement ps = c.prepareStatement(sql)) {
+        try (Connection c = Db.get(); PreparedStatement ps = c.prepareStatement(SQL_IS_ADMIN_PASSWORD)) {
             ps.setString(1, "admin");
             ps.setString(2, hashPassword(adminPassword.trim()));
             try (ResultSet rs = ps.executeQuery()) {
                 return rs.next();
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            System.err.println("[isAdminPassword] " + e.getMessage());
         }
         return false;
     }

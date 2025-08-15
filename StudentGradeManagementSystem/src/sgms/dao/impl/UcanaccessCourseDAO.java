@@ -13,15 +13,26 @@ import java.util.List;
  */
 public class UcanaccessCourseDAO implements CourseDAO {
 
+    private static final String SELECT_BY_GRADE = """
+            SELECT c.courseId, c.courseCode, c.courseName, c.gradeLevel,
+                   COUNT(sc.studentId) AS studentCount
+            FROM tblCourses c LEFT JOIN tblStudentCourses sc ON c.courseId = sc.courseId
+            WHERE c.gradeLevel = ?
+            GROUP BY c.courseId, c.courseCode, c.courseName, c.gradeLevel
+            ORDER BY c.courseName
+            """;
+    private static final String INSERT_COURSE =
+            "INSERT INTO tblCourses(courseCode, courseName, gradeLevel) VALUES (?, ?, ?)";
+    private static final String UPDATE_COURSE =
+            "UPDATE tblCourses SET courseName = ? WHERE courseId = ?";
+    private static final String DELETE_COURSE =
+            "DELETE FROM tblCourses WHERE courseId = ?";
+    private static final String FIND_BY_CODE =
+            "SELECT courseId, courseCode, courseName, gradeLevel FROM tblCourses WHERE courseCode = ?";
+
     @Override
     public List<Course> findByGrade(int gradeLevel) throws SQLException {
-        final String sql = "SELECT c.courseId, c.courseCode, c.courseName, c.gradeLevel, " +
-                "COUNT(sc.studentId) AS studentCount " +
-                "FROM tblCourses c LEFT JOIN tblStudentCourses sc ON c.courseId = sc.courseId " +
-                "WHERE c.gradeLevel = ? " +
-                "GROUP BY c.courseId, c.courseCode, c.courseName, c.gradeLevel " +
-                "ORDER BY c.courseName";
-        try (Connection c = Db.get(); PreparedStatement ps = c.prepareStatement(sql)) {
+        try (Connection c = Db.get(); PreparedStatement ps = c.prepareStatement(SELECT_BY_GRADE)) {
             ps.setInt(1, gradeLevel);
             try (ResultSet rs = ps.executeQuery()) {
                 List<Course> list = new ArrayList<>();
@@ -40,8 +51,7 @@ public class UcanaccessCourseDAO implements CourseDAO {
 
     @Override
     public Course add(Course c) throws SQLException {
-        final String sql = "INSERT INTO tblCourses(courseCode, courseName, gradeLevel) VALUES (?, ?, ?)";
-        try (Connection conn = Db.get(); PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+        try (Connection conn = Db.get(); PreparedStatement ps = conn.prepareStatement(INSERT_COURSE, Statement.RETURN_GENERATED_KEYS)) {
             ps.setString(1, c.getCourseCode());
             ps.setString(2, c.getCourseName());
             ps.setInt(3, c.getGradeLevel());
@@ -57,8 +67,7 @@ public class UcanaccessCourseDAO implements CourseDAO {
 
     @Override
     public boolean update(Course c) throws SQLException {
-        final String sql = "UPDATE tblCourses SET courseName = ? WHERE courseId = ?";
-        try (Connection conn = Db.get(); PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = Db.get(); PreparedStatement ps = conn.prepareStatement(UPDATE_COURSE)) {
             ps.setString(1, c.getCourseName());
             ps.setInt(2, c.getCourseId());
             return ps.executeUpdate() > 0;
@@ -67,8 +76,7 @@ public class UcanaccessCourseDAO implements CourseDAO {
 
     @Override
     public boolean delete(int courseId) throws SQLException {
-        final String sql = "DELETE FROM tblCourses WHERE courseId = ?";
-        try (Connection conn = Db.get(); PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = Db.get(); PreparedStatement ps = conn.prepareStatement(DELETE_COURSE)) {
             ps.setInt(1, courseId);
             return ps.executeUpdate() > 0;
         }
@@ -76,8 +84,7 @@ public class UcanaccessCourseDAO implements CourseDAO {
 
     @Override
     public Course findByCode(String code) throws SQLException {
-        final String sql = "SELECT courseId, courseCode, courseName, gradeLevel FROM tblCourses WHERE courseCode = ?";
-        try (Connection conn = Db.get(); PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = Db.get(); PreparedStatement ps = conn.prepareStatement(FIND_BY_CODE)) {
             ps.setString(1, code);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {

@@ -1302,6 +1302,7 @@ public class MainPage extends javax.swing.JFrame {
         finalGradesModel = null;
         attendanceTodayColumn = -1;
         selectionMode = false;
+        loadFinalGradesForSelectedGrade();
     }//GEN-LAST:event_jButtonViewFinalGradesActionPerformed
 
     private void jButtonAttendanceActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonAttendanceActionPerformed

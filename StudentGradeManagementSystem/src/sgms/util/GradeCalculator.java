@@ -1,106 +1,111 @@
 package sgms.util;
 
 /**
- * Utility for calculating weighted final grades based on term averages.
+ * Simple first-principles algorithms and grade maths for the PAT.
+ * - No streams/lambdas.
+ * - Clear loops and integer arithmetic where appropriate.
+ *
+ * The final grade calculation uses TERM WEIGHTS:
+ *   T1 = 12.5%, T2 = 25%, T3 = 12.5%, T4 = 50%
+ * Missing terms are ignored and the weights of present terms are re-normalised.
  */
 public final class GradeCalculator {
 
-    private GradeCalculator() {
-    }
+    private GradeCalculator() { }
+
+    // ------------------- TERM WEIGHTS -------------------
+    // Edit these if your school uses different weights; they should sum to 100.
+    private static final double[] TERM_WEIGHTS = { 12.5, 25.0, 12.5, 50.0 };
 
     /**
-     * Calculates the weighted final grade using the same weights as the
-     * "View Final Grades" feature:
+     * Combine up to four TERM PERCENTAGES (each 0..100) into a FINAL percentage using TERM_WEIGHTS.
+     * Any null term is skipped; remaining weights are re-normalised.
      *
-     * <ul>
-     *   <li>Term&nbsp;1 – 12.5&nbsp;%</li>
-     *   <li>Term&nbsp;2 – 25&nbsp;%</li>
-     *   <li>Term&nbsp;3 – 12.5&nbsp;%</li>
-     *   <li>Term&nbsp;4 – 50&nbsp;%</li>
-     * </ul>
-     *
-     * Terms without any assignments are ignored and the remaining weights are
-     * scaled proportionally so that missing terms do not unfairly lower the
-     * final grade. The result is capped in the inclusive range 0–100.
-     * If all term values are {@code null}, this method returns {@code null}.
+     * @param t1 percent (may be null)
+     * @param t2 percent (may be null)
+     * @param t3 percent (may be null)
+     * @param t4 percent (may be null)
+     * @return final percent (0..100) or null if all terms are null
      */
-    public static Double calculateFinalGrade(Double term1, Double term2,
-            Double term3, Double term4) {
-        double total = 0.0;
-        double weight = 0.0;
-        if (term1 != null) {
-            total += term1 * 0.125;
-            weight += 0.125;
+    public static Double calculateFinalGrade(Double t1, Double t2, Double t3, Double t4) {
+        Double[] terms = { t1, t2, t3, t4 };
+
+        double weightedSum = 0.0;
+        double weightTotal = 0.0;
+
+        int i;
+        for (i = 0; i < 4; i++) {
+            Double term = terms[i];
+            if (term != null) {
+                double w = TERM_WEIGHTS[i];
+                weightedSum += (term.doubleValue() * w);
+                weightTotal += w;
+            }
         }
-        if (term2 != null) {
-            total += term2 * 0.25;
-            weight += 0.25;
+
+        if (weightTotal <= 0.0) {
+            return null; // no data at all
         }
-        if (term3 != null) {
-            total += term3 * 0.125;
-            weight += 0.125;
-        }
-        if (term4 != null) {
-            total += term4 * 0.5;
-            weight += 0.5;
-        }
-        if (weight == 0.0) {
-            return null;
-        }
-        double result = total / weight;
-        return Math.max(0.0, Math.min(result, 100.0));
+
+        double finalPct = weightedSum / weightTotal;
+
+        // clamp to [0,100] just in case of rounding noise
+        if (finalPct < 0.0) finalPct = 0.0;
+        if (finalPct > 100.0) finalPct = 100.0;
+
+        return Double.valueOf(finalPct);
     }
 
-    /** Returns the class average for the given marks. */
+    // ------------------- Other syllabus-level helpers -------------------
+
+    /** Average of an int[] (returns double). Empty array -> 0.0 */
     public static double classAverage(int[] marks) {
-        if (marks == null || marks.length == 0) {
-            return 0.0;
-        }
-        int total = 0;
-        for (int i = 0; i < marks.length; i++) {
+        if (marks == null || marks.length == 0) return 0.0;
+        long total = 0;
+        int i;
+        for (i = 0; i < marks.length; i++) {
             total += marks[i];
         }
-        return (double) total / marks.length;
+        return ((double) total) / marks.length;
     }
 
-    /** Simple bubble sort that orders the array ascending with early exit. */
+    /** Bubble sort ascending with early exit. */
     public static void bubbleSortAscending(int[] a) {
-        boolean swapped;
-        for (int i = 0; i < a.length - 1; i++) {
+        if (a == null || a.length < 2) return;
+        int n = a.length;
+        boolean swapped = true;
+        while (swapped) {
             swapped = false;
-            for (int j = 0; j < a.length - 1 - i; j++) {
-                if (a[j] > a[j + 1]) {
-                    int tmp = a[j];
-                    a[j] = a[j + 1];
-                    a[j + 1] = tmp;
+            int i;
+            for (i = 1; i < n; i++) {
+                if (a[i - 1] > a[i]) {
+                    int tmp = a[i - 1];
+                    a[i - 1] = a[i];
+                    a[i] = tmp;
                     swapped = true;
                 }
             }
-            if (!swapped) {
-                break;
-            }
+            n--; // largest element is now at the end
         }
     }
 
-    /** Linear search for integers. Returns index or -1. */
+    /** Linear search for an int, returns index or -1 if not found. */
     public static int linearSearch(int[] a, int target) {
-        for (int i = 0; i < a.length; i++) {
-            if (a[i] == target) {
-                return i;
-            }
+        if (a == null) return -1;
+        int i;
+        for (i = 0; i < a.length; i++) {
+            if (a[i] == target) return i;
         }
         return -1;
-    }
-
-    /** Case-insensitive linear search for strings. Returns index or -1. */
-    public static int linearSearch(String[] a, String target) {
-        if (target == null) {
-            return -1;
         }
-        for (int i = 0; i < a.length; i++) {
-            if (target.equalsIgnoreCase(a[i])) {
-                return i;
-            }
+    
+    /** Case-insensitive linear search for a String, returns index or -1 if not found. */
+    public static int linearSearch(String[] a, String target) {
+        if (a == null || target == null) return -1;
+        int i;
+        for (i = 0; i < a.length; i++) {
+            String s = a[i];
+            if (s != null && s.equalsIgnoreCase(target)) return i;
         }
         return -1;
     }

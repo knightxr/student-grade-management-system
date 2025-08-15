@@ -1,4 +1,3 @@
-// FILE: src/sgms/util/ReportCardGenerator.java
 package sgms.util;
 
 import java.awt.Desktop;

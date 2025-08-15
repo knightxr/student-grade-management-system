@@ -164,7 +164,10 @@ public class ReportService {
                 Integer mark = grades.get(a.getAssignmentId());
                 if (mark != null) {
                     int term = a.getTerm();
-                    termSum[term - 1] += mark;
+                    Integer max = a.getMaxMarks();
+                    int maxMarks = max != null ? max : 0;
+                    double pct = maxMarks > 0 ? (mark * 100.0) / maxMarks : 0.0;
+                    termSum[term - 1] += pct;
                     termCount[term - 1]++;
                 }
             }

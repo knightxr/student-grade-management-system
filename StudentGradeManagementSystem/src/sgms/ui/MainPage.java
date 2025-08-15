@@ -803,6 +803,37 @@ public class MainPage extends javax.swing.JFrame {
     }//GEN-LAST:event_jButtonAddActionPerformed
 
     private void jButtonDeleteActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonDeleteActionPerformed
+        javax.swing.table.TableModel m = jTable.getModel();
+        if (m instanceof StudentGradesTableModel) {
+            try {
+                setActiveButton(jButtonViewStudentGrades);
+            } catch (Throwable ignore) {
+            }
+            javax.swing.table.TableColumnModel cm = jTable.getColumnModel();
+            int deleteCol = -1;
+            for (int i = 0; i < cm.getColumnCount(); i++) {
+                Object h = cm.getColumn(i).getHeaderValue();
+                if ("Delete".equals(String.valueOf(h))) {
+                    deleteCol = i;
+                    break;
+                }
+            }
+            if (deleteCol == -1) {
+                javax.swing.table.TableColumn col = new javax.swing.table.TableColumn(cm.getColumnCount());
+                col.setHeaderValue("Delete");
+                col.setCellEditor(new javax.swing.DefaultCellEditor(new javax.swing.JCheckBox()));
+                javax.swing.table.DefaultTableCellRenderer red = new javax.swing.table.DefaultTableCellRenderer();
+                red.setOpaque(true);
+                red.setBackground(new java.awt.Color(255, 235, 238));
+                red.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+                col.setCellRenderer(red);
+                cm.addColumn(col);
+            }
+            jTable.clearSelection();
+            jTable.revalidate();
+            jTable.repaint();
+            return;
+        }
         if (finalGradesModel != null) {
             return;
         }
@@ -1002,8 +1033,10 @@ public class MainPage extends javax.swing.JFrame {
                 studentSelectionModel = null;
                 attendanceModel = null;
                 attendanceTodayColumn = -1;
-                loadStudentsForSelectedCourse();
-                setActiveButton(jButtonViewStudents);
+                if (!(jTable.getModel() instanceof StudentGradesTableModel)) {
+                    loadStudentsForSelectedCourse();
+                    setActiveButton(jButtonViewStudents);
+                }
             } catch (Exception ex) {
                 JOptionPane.showMessageDialog(this, "Unable to update enrollments: " + ex.getMessage(),
                         "Error", JOptionPane.ERROR_MESSAGE);
@@ -1041,11 +1074,20 @@ public class MainPage extends javax.swing.JFrame {
                 JOptionPane.showMessageDialog(this, "Unable to save assignments: " + ex.getMessage(),
                         "Error", JOptionPane.ERROR_MESSAGE);
             }
+            javax.swing.table.TableColumnModel cm = jTable.getColumnModel();
+            for (int i = 0; i < cm.getColumnCount(); i++) {
+                if ("Delete".equals(String.valueOf(cm.getColumn(i).getHeaderValue()))) {
+                    cm.removeColumn(cm.getColumn(i));
+                    break;
+                }
+            }
+            jTable.revalidate();
+            jTable.repaint();
             return;
         }
         if (studentGradesModel != null) {
             try {
-                Map<Integer, Map<Integer, Integer>> grades = studentGradesModel.getGrades();
+                Map<Integer, Map<Integer, Integer>> grades = studentGradesModel.getGradesByStudent();
                 for (Map.Entry<Integer, Map<Integer, Integer>> e : grades.entrySet()) {
                     int studentId = e.getKey();
                     Map<Integer, Integer> gmap = e.getValue();
@@ -1579,15 +1621,28 @@ private void loadCourses() {
         sorter.setSortKeys(keys);
         sorter.sort(); // apply now
 
-        // Refresh table
-        jTable.clearSelection();
-        jTable.revalidate();
-        jTable.repaint();
-        
+        // Left-align numeric columns (ID and Grade) without losing numeric sorting
         javax.swing.table.DefaultTableCellRenderer left = new javax.swing.table.DefaultTableCellRenderer();
         left.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
         jTable.getColumnModel().getColumn(0).setCellRenderer(left); // ID
         jTable.getColumnModel().getColumn(3).setCellRenderer(left); // Grade
+
+        // Evenly distribute column widths across the viewport
+        int cols = jTable.getColumnModel().getColumnCount();
+        int w = 0;
+        java.awt.Container parent = jTable.getParent();
+        if (parent != null) w = parent.getWidth();
+        if (w <= 0) w = jTable.getWidth();
+        int per = (cols > 0 && w > 0) ? Math.max(60, w / cols) : 100;
+        for (int i = 0; i < cols; i++) {
+            jTable.getColumnModel().getColumn(i).setPreferredWidth(per);
+        }
+        jTable.doLayout();
+
+        // Refresh table
+        jTable.clearSelection();
+        jTable.revalidate();
+        jTable.repaint();
 
     } catch (Exception ex) {
         javax.swing.JOptionPane.showMessageDialog(
@@ -1653,27 +1708,118 @@ private void loadCourses() {
     }
 
     private void loadFinalGradesForSelectedGrade() {
-        try {
-            int grade = getSelectedGradeLevel();
-            if (grade <= 0) {
-                return;
+    try {
+        int gradeLevel = getSelectedGradeLevel(); // your existing helper
+
+        // 1) Students in the selected grade
+        java.util.List<sgms.model.Student> all = studentDAO.findAll();
+        java.util.List<sgms.model.Student> students = new java.util.ArrayList<sgms.model.Student>();
+        int i;
+        for (i = 0; i < all.size(); i++) {
+            sgms.model.Student s = all.get(i);
+            if (s.getGradeLevel() == gradeLevel) {
+                students.add(s);
             }
-            FinalGradeDAO dao = new UcanaccessFinalGradeDAO();
-            List<FinalGrade> list = dao.findByGradeLevel(grade);
-            finalGradesModel = new FinalGradesTableModel(list);
-            studentGradesModel = null;
-            studentTableModel = null;
-            selectionMode = false;
-            studentSelectionModel = null;
-            jTable.setModel(finalGradesModel);
-            jTable.setAutoCreateRowSorter(true);
-            TableRowSorter<?> sorter = (TableRowSorter<?>) jTable.getRowSorter();
-            sorter.setSortKeys(List.of(new RowSorter.SortKey(1, SortOrder.ASCENDING)));
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "Unable to load final grades: " + ex.getMessage(),
-                    "Error", JOptionPane.ERROR_MESSAGE);
         }
+
+        // 2) Merge assignments + grades from ALL courses in this grade
+        java.util.List<sgms.model.Assignment> assignments = new java.util.ArrayList<sgms.model.Assignment>();
+        java.util.Map<Integer, java.util.Map<Integer, Integer>> mergedGrades =
+                new java.util.HashMap<Integer, java.util.Map<Integer, Integer>>();
+
+        java.util.List<sgms.model.Course> courses = courseDAO.findByGrade(gradeLevel);
+        for (int ci = 0; ci < courses.size(); ci++) {
+            sgms.model.Course c = courses.get(ci);
+
+            // collect assignments
+            java.util.List<sgms.model.Assignment> assigns = assignmentDAO.findByCourse(c.getCourseId());
+            for (int j = 0; j < assigns.size(); j++) {
+                assignments.add(assigns.get(j));
+            }
+
+            // merge grades: studentId -> (assignmentId -> raw mark)
+            java.util.Map<Integer, java.util.Map<Integer, Integer>> gByStu = gradeDAO.findByCourse(c.getCourseId());
+            java.util.Iterator<java.util.Map.Entry<Integer, java.util.Map<Integer, Integer>>> it = gByStu.entrySet().iterator();
+            while (it.hasNext()) {
+                java.util.Map.Entry<Integer, java.util.Map<Integer, Integer>> e = it.next();
+                Integer studentId = e.getKey();
+                java.util.Map<Integer, Integer> src = e.getValue();
+
+                java.util.Map<Integer, Integer> dest = mergedGrades.get(studentId);
+                if (dest == null) {
+                    dest = new java.util.HashMap<Integer, Integer>();
+                    mergedGrades.put(studentId, dest);
+                }
+                java.util.Iterator<java.util.Map.Entry<Integer, Integer>> it2 = src.entrySet().iterator();
+                while (it2.hasNext()) {
+                    java.util.Map.Entry<Integer, Integer> g = it2.next();
+                    dest.put(g.getKey(), g.getValue());
+                }
+            }
+        }
+
+        // 3) Backing grades grid (aggregates across courses)
+        sgms.ui.StudentGradesTableModel backing =
+                new sgms.ui.StudentGradesTableModel(students, assignments, mergedGrades);
+
+        // 4) Final summary model that reads term/final from the backing model
+        finalGradesModel = new sgms.ui.FinalGradesTableModel(students, backing);
+
+        // Apply to table (simple, IEB-aligned)
+        studentGradesModel = null;
+        studentTableModel = null;
+        selectionMode = false;
+        studentSelectionModel = null;
+
+        jTable.setModel(finalGradesModel);
+
+        // Sort: Final % DESC, Last Name ASC, First Name ASC
+        jTable.setAutoCreateRowSorter(true);
+        javax.swing.RowSorter<?> rs = jTable.getRowSorter();
+        if (rs instanceof javax.swing.table.TableRowSorter) {
+            @SuppressWarnings("unchecked")
+            javax.swing.table.TableRowSorter<javax.swing.table.TableModel> sorter =
+                    (javax.swing.table.TableRowSorter<javax.swing.table.TableModel>) rs;
+
+            java.text.Collator coll = java.text.Collator.getInstance(java.util.Locale.ROOT);
+            coll.setStrength(java.text.Collator.PRIMARY);
+            sorter.setComparator(0, coll); // First Name
+            sorter.setComparator(1, coll); // Last  Name
+
+            java.util.List<javax.swing.RowSorter.SortKey> keys =
+                    new java.util.ArrayList<javax.swing.RowSorter.SortKey>();
+            keys.add(new javax.swing.RowSorter.SortKey(6, javax.swing.SortOrder.DESCENDING)); // Final %
+            keys.add(new javax.swing.RowSorter.SortKey(1, javax.swing.SortOrder.ASCENDING));  // Last
+            keys.add(new javax.swing.RowSorter.SortKey(0, javax.swing.SortOrder.ASCENDING));  // First
+            sorter.setSortKeys(keys);
+            sorter.sort();
+        }
+
+        // Even column widths
+        int cols = jTable.getColumnModel().getColumnCount();
+        int w = 0;
+        java.awt.Container parent = jTable.getParent();
+        if (parent != null) w = parent.getWidth();
+        if (w <= 0) w = jTable.getWidth();
+        int per = (cols > 0 && w > 0) ? Math.max(70, w / cols) : 100;
+        for (i = 0; i < cols; i++) {
+            jTable.getColumnModel().getColumn(i).setPreferredWidth(per);
+        }
+        jTable.doLayout();
+
+        jTable.clearSelection();
+        jTable.revalidate();
+        jTable.repaint();
+
+    } catch (Exception ex) {
+        javax.swing.JOptionPane.showMessageDialog(
+                this,
+                "Unable to load final grades: " + ex.getMessage(),
+                "Error",
+                javax.swing.JOptionPane.ERROR_MESSAGE
+        );
     }
+}
 
     private void loadCoursesForGrades() {
         try {
@@ -1855,4 +2001,5 @@ private void loadCourses() {
                     "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
+    
 }

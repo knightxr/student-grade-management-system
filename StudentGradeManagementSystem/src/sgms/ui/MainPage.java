@@ -10,9 +10,7 @@ import java.time.temporal.TemporalAdjusters;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.HashMap;
 import java.util.Set;
-import java.io.IOException;
 import java.nio.file.Path;
 import javax.swing.JOptionPane;
 import javax.swing.SwingWorker;
@@ -42,12 +40,10 @@ import sgms.dao.impl.UcanaccessFeedbackDAO;
 import sgms.dao.impl.UcanaccessCourseDAO;
 import sgms.model.Assignment;
 import sgms.model.Course;
-import sgms.model.FinalGrade;
 import sgms.model.Student;
 import sgms.service.ValidationService;
 import sgms.util.SearchUtil;
 import sgms.util.ReportCardGenerator;
-import sgms.ui.AssignmentTableModel;
 
 /**
  * 
@@ -68,8 +64,10 @@ public class MainPage extends javax.swing.JFrame {
     private AssignmentTableModel assignmentModel;
     private javax.swing.table.TableColumn courseDeleteColumn;
     private javax.swing.table.TableColumn assignmentDeleteColumn;
+    private javax.swing.table.TableColumn studentDeleteColumn;
     private boolean courseDeleteMode = false;
     private boolean assignmentDeleteMode = false;
+    private boolean studentDeleteMode = false;
     private boolean selectionMode = false;
     private int attendanceTodayColumn = -1;
     private final FeedbackDAO feedbackDAO = new UcanaccessFeedbackDAO();
@@ -167,6 +165,12 @@ public class MainPage extends javax.swing.JFrame {
                     } else if (assignmentModel != null) {
                         int modelRow = convertRowIndexToModel(row);
                         if (assignmentModel.isMarkedForDeletion(modelRow) && !isRowSelected(row)) {
+                            c.setBackground(Color.RED);
+                            colored = true;
+                        }
+                    } else if (studentTableModel != null && studentDeleteMode) {
+                        int modelRow = convertRowIndexToModel(row);
+                        if (studentTableModel.isMarkedForDeletion(modelRow) && !isRowSelected(row)) {
                             c.setBackground(Color.RED);
                             colored = true;
                         }
@@ -576,6 +580,8 @@ public class MainPage extends javax.swing.JFrame {
         jButtonSave.setEnabled(true);
         jButtonEdit.setEnabled(true);
         studentTableModel = null;
+        studentDeleteColumn = null;
+        studentDeleteMode = false;
         finalGradesModel = null;
         studentSelectionModel = null;
         attendanceModel = null;
@@ -604,6 +610,8 @@ public class MainPage extends javax.swing.JFrame {
         jButtonSave.setEnabled(true);
         jButtonEdit.setEnabled(true);
         studentTableModel = null;
+        studentDeleteColumn = null;
+        studentDeleteMode = false;
         studentSelectionModel = null;
         studentGradesModel = null;
         finalGradesModel = null;
@@ -626,6 +634,8 @@ public class MainPage extends javax.swing.JFrame {
         finalGradesModel = null;
         attendanceModel = null;
         feedbackModel = null;
+        studentDeleteColumn = null;
+        studentDeleteMode = false;
         courseModel = null;
         courseDeleteColumn = null;
         courseDeleteMode = false;
@@ -887,36 +897,27 @@ public class MainPage extends javax.swing.JFrame {
             }
             return;
         }
-        if (studentGradesModel != null) {
+        if (studentTableModel != null) {
             int courseId = getSelectedCourseId();
-            if (courseId > 0 && !selectionMode) {
-                startEnrollmentEdit();
-            }
-            return;
-        }
-        if (studentTableModel == null) {
-            return;
-        }
-        int courseId = getSelectedCourseId();
-        if (courseId > 0) {
-            if (!selectionMode) {
-                startEnrollmentEdit();
-            }
-            return;
-        }
-        int row = jTable.getSelectedRow();
-        if (row >= 0) {
-            Student s = studentTableModel.getStudent(row);
-            if (s.getStudentId() > 0) {
-                try {
-                    studentDAO.delete(s.getStudentId());
-                } catch (Exception ex) {
-                    JOptionPane.showMessageDialog(this, "Unable to delete student: " + ex.getMessage(),
-                            "Error", JOptionPane.ERROR_MESSAGE);
-                    return;
+            if (courseId > 0) {
+                if (!selectionMode) {
+                    startEnrollmentEdit();
                 }
+                return;
             }
-            studentTableModel.removeStudent(row);
+            if (!studentDeleteMode) {
+                jTable.addColumn(studentDeleteColumn);
+                jTable.moveColumn(jTable.getColumnCount() - 1, 0);
+                studentDeleteMode = true;
+            } else {
+                jTable.removeColumn(studentDeleteColumn);
+                studentTableModel.clearDeleted();
+                studentDeleteMode = false;
+            }
+            jTable.clearSelection();
+            jTable.revalidate();
+            jTable.repaint();
+            return;
         }
     }//GEN-LAST:event_jButtonDeleteActionPerformed
 
@@ -1182,18 +1183,22 @@ public class MainPage extends javax.swing.JFrame {
             }
         }
         try {
+            Set<Integer> deleted = studentTableModel.getDeletedIds();
             for (Student s : studentTableModel.getStudents()) {
-                if (s.getStudentId() == 0) {
+                int id = s.getStudentId();
+                if (studentDeleteMode && deleted.contains(Integer.valueOf(id))) {
+                    if (id > 0) {
+                        studentDAO.delete(id);
+                    }
+                    continue;
+                }
+                if (id == 0) {
                     studentDAO.add(s);
                 } else {
                     studentDAO.update(s);
                 }
             }
-            // Refresh table to show any generated IDs
-            int courseId = getSelectedCourseId();
-            List<Student> students = courseId > 0 ?
-                    studentDAO.findByCourse(courseId) : studentDAO.findAll();
-            studentTableModel.setStudents(students);
+            loadStudentsForSelectedCourse();
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this, "Unable to save students: " + ex.getMessage(),
                     "Error", JOptionPane.ERROR_MESSAGE);
@@ -1282,6 +1287,8 @@ public class MainPage extends javax.swing.JFrame {
         jButtonSave.setEnabled(false);
         jButtonEdit.setEnabled(false);
         studentTableModel = null;
+        studentDeleteColumn = null;
+        studentDeleteMode = false;
         studentGradesModel = null;
         studentSelectionModel = null;
         attendanceModel = null;
@@ -1295,7 +1302,6 @@ public class MainPage extends javax.swing.JFrame {
         finalGradesModel = null;
         attendanceTodayColumn = -1;
         selectionMode = false;
-        loadFinalGradesForSelectedGrade();
     }//GEN-LAST:event_jButtonViewFinalGradesActionPerformed
 
     private void jButtonAttendanceActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonAttendanceActionPerformed
@@ -1307,6 +1313,8 @@ public class MainPage extends javax.swing.JFrame {
         jButtonEdit.setEnabled(false);
         jButtonSave.setEnabled(true);
         studentTableModel = null;
+        studentDeleteColumn = null;
+        studentDeleteMode = false;
         studentSelectionModel = null;
         studentGradesModel = null;
         finalGradesModel = null;
@@ -1330,6 +1338,8 @@ public class MainPage extends javax.swing.JFrame {
         jButtonEdit.setEnabled(true);
         jButtonSave.setEnabled(true);
         studentTableModel = null;
+        studentDeleteColumn = null;
+        studentDeleteMode = false;
         studentSelectionModel = null;
         studentGradesModel = null;
         finalGradesModel = null;
@@ -1354,6 +1364,8 @@ public class MainPage extends javax.swing.JFrame {
         jButtonSave.setEnabled(true);
         jButtonEdit.setEnabled(true);
         studentTableModel = null;
+        studentDeleteColumn = null;
+        studentDeleteMode = false;
         studentSelectionModel = null;
         studentGradesModel = null;
         finalGradesModel = null;
@@ -1568,90 +1580,106 @@ private void loadCourses() {
     
     private void loadStudentsForSelectedCourse() {
         try {
-        int courseId = getSelectedCourseId();
+            int courseId = getSelectedCourseId();
 
-        // Get fresh data: if no course is selected yet, show ALL students
-        java.util.List<sgms.model.Student> students;
-        if (courseId > 0) {
-            students = studentDAO.findByCourse(courseId);
-        } else {
-            students = studentDAO.findAll();
+            java.util.List<sgms.model.Student> students;
+            if (courseId > 0) {
+                students = studentDAO.findByCourse(courseId);
+            } else {
+                students = studentDAO.findAll();
+            }
+
+            studentGradesModel = null;
+            finalGradesModel = null;
+            selectionMode = false;
+            studentSelectionModel = null;
+
+            if (jTable.getModel() instanceof sgms.ui.StudentTableModel) {
+                studentTableModel = (sgms.ui.StudentTableModel) jTable.getModel();
+                studentTableModel.clearDeleted();
+                studentTableModel.setRows(students);
+            } else {
+                studentTableModel = new sgms.ui.StudentTableModel(students);
+                jTable.setModel(studentTableModel);
+            }
+
+            javax.swing.RowSorter<?> rs = jTable.getRowSorter();
+            if (!(rs instanceof javax.swing.table.TableRowSorter)) {
+                jTable.setAutoCreateRowSorter(true);
+                rs = jTable.getRowSorter();
+            }
+            @SuppressWarnings("unchecked")
+            javax.swing.table.TableRowSorter<javax.swing.table.TableModel> sorter =
+                    (javax.swing.table.TableRowSorter<javax.swing.table.TableModel>) rs;
+            sorter.setModel(jTable.getModel());
+            sorter.setRowFilter(null);
+
+            java.text.Collator coll = java.text.Collator.getInstance(java.util.Locale.ROOT);
+            coll.setStrength(java.text.Collator.PRIMARY);
+            sorter.setComparator(2, coll);
+            sorter.setComparator(3, coll);
+
+            java.util.List<javax.swing.RowSorter.SortKey> keys =
+                    new java.util.ArrayList<javax.swing.RowSorter.SortKey>();
+            keys.add(new javax.swing.RowSorter.SortKey(4, javax.swing.SortOrder.ASCENDING));
+            keys.add(new javax.swing.RowSorter.SortKey(3, javax.swing.SortOrder.ASCENDING));
+            keys.add(new javax.swing.RowSorter.SortKey(2, javax.swing.SortOrder.ASCENDING));
+            sorter.setSortKeys(keys);
+            sorter.sort();
+
+            ((javax.swing.table.DefaultTableCellRenderer) jTable.getTableHeader().getDefaultRenderer())
+                    .setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+            javax.swing.JCheckBox editorCheckBox = new javax.swing.JCheckBox();
+            editorCheckBox.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+            jTable.setDefaultEditor(Boolean.class, new javax.swing.DefaultCellEditor(editorCheckBox));
+            for (int i = 0; i < jTable.getColumnCount(); i++) {
+                javax.swing.table.TableColumn column = jTable.getColumnModel().getColumn(i);
+                if (jTable.getColumnClass(i) == Boolean.class) {
+                    column.setCellRenderer(new javax.swing.table.TableCellRenderer() {
+                        final javax.swing.JCheckBox cb = new javax.swing.JCheckBox();
+                        {
+                            cb.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+                        }
+                        @Override
+                        public java.awt.Component getTableCellRendererComponent(javax.swing.JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+                            cb.setSelected(Boolean.TRUE.equals(value));
+                            return cb;
+                        }
+                    });
+                } else {
+                    javax.swing.table.DefaultTableCellRenderer leftRenderer = new javax.swing.table.DefaultTableCellRenderer();
+                    leftRenderer.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+                    column.setCellRenderer(leftRenderer);
+                }
+            }
+
+            studentDeleteColumn = jTable.getColumnModel().getColumn(0);
+            jTable.removeColumn(studentDeleteColumn);
+            studentDeleteMode = false;
+
+            int cols = jTable.getColumnModel().getColumnCount();
+            int w = 0;
+            java.awt.Container parent = jTable.getParent();
+            if (parent != null) w = parent.getWidth();
+            if (w <= 0) w = jTable.getWidth();
+            int per = (cols > 0 && w > 0) ? Math.max(60, w / cols) : 100;
+            for (int i = 0; i < cols; i++) {
+                jTable.getColumnModel().getColumn(i).setPreferredWidth(per);
+            }
+            jTable.doLayout();
+
+            jTable.clearSelection();
+            jTable.revalidate();
+            jTable.repaint();
+
+        } catch (Exception ex) {
+            javax.swing.JOptionPane.showMessageDialog(
+                    this,
+                    "Unable to load students: " + ex.getMessage(),
+                    "Error",
+                    javax.swing.JOptionPane.ERROR_MESSAGE
+            );
         }
-
-        // Clear modes not used in the "View Students" screen
-        studentGradesModel = null;
-        finalGradesModel = null;
-        selectionMode = false;
-        studentSelectionModel = null;
-
-        // Reuse existing StudentTableModel if present, else set a new one
-        if (jTable.getModel() instanceof sgms.ui.StudentTableModel) {
-            ((sgms.ui.StudentTableModel) jTable.getModel()).setRows(students);
-        } else {
-            studentTableModel = new sgms.ui.StudentTableModel(students);
-            jTable.setModel(studentTableModel);
-        }
-
-        // Ensure a sorter exists and is bound to the CURRENT model
-        javax.swing.RowSorter<?> rs = jTable.getRowSorter();
-        if (!(rs instanceof javax.swing.table.TableRowSorter)) {
-            jTable.setAutoCreateRowSorter(true);
-            rs = jTable.getRowSorter();
-        }
-        @SuppressWarnings("unchecked")
-        javax.swing.table.TableRowSorter<javax.swing.table.TableModel> sorter =
-                (javax.swing.table.TableRowSorter<javax.swing.table.TableModel>) rs;
-        sorter.setModel(jTable.getModel());
-
-        // Clear any old search filter so rows are visible when switching view
-        sorter.setRowFilter(null);
-
-        // Case-insensitive comparison for names (no lambdas)
-        java.text.Collator coll = java.text.Collator.getInstance(java.util.Locale.ROOT);
-        coll.setStrength(java.text.Collator.PRIMARY);
-        sorter.setComparator(1, coll); // First Name
-        sorter.setComparator(2, coll); // Last Name
-
-        // Multi-column sort: Grade (col 3), then Last Name (col 2), then First Name (col 1)
-        java.util.List<javax.swing.RowSorter.SortKey> keys =
-                new java.util.ArrayList<javax.swing.RowSorter.SortKey>();
-        keys.add(new javax.swing.RowSorter.SortKey(3, javax.swing.SortOrder.ASCENDING));
-        keys.add(new javax.swing.RowSorter.SortKey(2, javax.swing.SortOrder.ASCENDING));
-        keys.add(new javax.swing.RowSorter.SortKey(1, javax.swing.SortOrder.ASCENDING));
-        sorter.setSortKeys(keys);
-        sorter.sort(); // apply now
-
-        // Left-align numeric columns (ID and Grade) without losing numeric sorting
-        javax.swing.table.DefaultTableCellRenderer left = new javax.swing.table.DefaultTableCellRenderer();
-        left.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
-        jTable.getColumnModel().getColumn(0).setCellRenderer(left); // ID
-        jTable.getColumnModel().getColumn(3).setCellRenderer(left); // Grade
-
-        // Evenly distribute column widths across the viewport
-        int cols = jTable.getColumnModel().getColumnCount();
-        int w = 0;
-        java.awt.Container parent = jTable.getParent();
-        if (parent != null) w = parent.getWidth();
-        if (w <= 0) w = jTable.getWidth();
-        int per = (cols > 0 && w > 0) ? Math.max(60, w / cols) : 100;
-        for (int i = 0; i < cols; i++) {
-            jTable.getColumnModel().getColumn(i).setPreferredWidth(per);
-        }
-        jTable.doLayout();
-
-        // Refresh table
-        jTable.clearSelection();
-        jTable.revalidate();
-        jTable.repaint();
-
-    } catch (Exception ex) {
-        javax.swing.JOptionPane.showMessageDialog(
-                this,
-                "Unable to load students: " + ex.getMessage(),
-                "Error",
-                javax.swing.JOptionPane.ERROR_MESSAGE
-        );
-    }
     }
 
     private void startEnrollmentEdit() {
@@ -1695,6 +1723,8 @@ private void loadCourses() {
             studentGradesModel = new StudentGradesTableModel(students, assignments, grades);
             finalGradesModel = null;
             studentTableModel = null;
+            studentDeleteColumn = null;
+            studentDeleteMode = false;
             selectionMode = false;
             studentSelectionModel = null;
             jTable.setModel(studentGradesModel);
@@ -1768,6 +1798,8 @@ private void loadCourses() {
         // Apply to table (simple, IEB-aligned)
         studentGradesModel = null;
         studentTableModel = null;
+        studentDeleteColumn = null;
+        studentDeleteMode = false;
         selectionMode = false;
         studentSelectionModel = null;
 
@@ -1944,6 +1976,8 @@ private void loadCourses() {
             Map<Integer, Map<LocalDate, Boolean>> data = dao.findByCourseAndDateRange(courseId, start, end);
             attendanceModel = new AttendanceTableModel(students, start, data);
             studentTableModel = null;
+            studentDeleteColumn = null;
+            studentDeleteMode = false;
             studentSelectionModel = null;
             studentGradesModel = null;
             finalGradesModel = null;
@@ -1988,6 +2022,8 @@ private void loadCourses() {
             Map<Integer, String> notes = feedbackDAO.findByCourse(courseId);
             feedbackModel = new StudentFeedbackTableModel(students, notes);
             studentTableModel = null;
+            studentDeleteColumn = null;
+            studentDeleteMode = false;
             studentSelectionModel = null;
             studentGradesModel = null;
             finalGradesModel = null;

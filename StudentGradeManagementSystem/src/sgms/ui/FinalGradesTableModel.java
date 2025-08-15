@@ -2,10 +2,8 @@ package sgms.ui;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import javax.swing.table.AbstractTableModel;
 
-import sgms.model.Assignment;
 import sgms.model.Student;
 import sgms.util.GradeCalculator;
 
@@ -66,47 +64,13 @@ public class FinalGradesTableModel extends AbstractTableModel {
         // Term averages
         if (columnIndex >= 2 && columnIndex <= 5) {
             int term = (columnIndex - 2) + 1; // 2 maps to 1, 3 to 2, 4 to 3, 5 to 4
-            Double t = computeTermAveragePercent(s.getStudentId(), term);
+            Double t = backing.getTermAveragePercent(s.getStudentId(), term);
             return (t == null) ? null : Integer.valueOf((int)Math.round(t.doubleValue()));
         }
 
         // Final %
-        Double t1 = computeTermAveragePercent(s.getStudentId(), 1);
-        Double t2 = computeTermAveragePercent(s.getStudentId(), 2);
-        Double t3 = computeTermAveragePercent(s.getStudentId(), 3);
-        Double t4 = computeTermAveragePercent(s.getStudentId(), 4);
-        Double fin = GradeCalculator.calculateFinalGrade(t1, t2, t3, t4);
+        Double fin = backing.getFinalPercent(s.getStudentId());
         return (fin == null) ? null : Integer.valueOf((int)Math.round(fin.doubleValue()));
     }
 
-    // ---------------- helpers ----------------
-
-    /** Average of assignment PERCENTs for the given term from the backing model. */
-    private Double computeTermAveragePercent(int studentId, int term) {
-        Map<Integer, Map<Integer, Integer>> grades = backing.getGrades();
-        Map<Integer, Integer> marks = grades.get(studentId);
-        if (marks == null) return null;
-
-        double sumPct = 0.0;
-        int count = 0;
-
-        // backing has: column 0 = "Student", then assignments at indices 1..N
-        int assignmentCount = backing.getColumnCount() - 1;
-        int i;
-        for (i = 0; i < assignmentCount; i++) {
-            Assignment a = backing.getAssignmentAt(i);
-            if (a.getTerm() == term) {
-                Integer raw = marks.get(a.getAssignmentId());
-                if (raw != null) {
-                    int max = (a.getMaxMarks() == null) ? 0 : a.getMaxMarks().intValue();
-                    double pct = (max > 0) ? (raw.intValue() * 100.0) / max : 0.0;
-                    sumPct += pct;
-                    count++;
-                }
-            }
-        }
-
-        if (count == 0) return null;
-        return Double.valueOf(sumPct / count);
-    }
 }

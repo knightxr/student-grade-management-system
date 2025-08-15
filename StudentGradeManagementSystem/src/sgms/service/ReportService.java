@@ -13,6 +13,7 @@ import sgms.dao.impl.UcanaccessReportDAO;
 import sgms.model.Assignment;
 import sgms.model.Course;
 import sgms.model.Student;
+import sgms.ui.StudentGradesTableModel;
 import sgms.util.GradeCalculator;
 import sgms.util.Grades;
 
@@ -156,31 +157,22 @@ public class ReportService {
             String base = name.replace(' ', '_');
             List<Assignment> assigns = assignmentDAO.findByCourse(c.getCourseId());
             Map<Integer, Map<Integer, Integer>> gradesByStudent = gradeDAO.findByCourse(c.getCourseId());
-            Map<Integer, Integer> grades = gradesByStudent.getOrDefault(studentId, new HashMap<Integer, Integer>());
-            double[] termSum = new double[4];
-            int[] termCount = new int[4];
-            for (int aIndex = 0; aIndex < assigns.size(); aIndex++) {
-                Assignment a = assigns.get(aIndex);
-                Integer mark = grades.get(a.getAssignmentId());
-                if (mark != null) {
-                    int term = a.getTerm();
-                    Integer max = a.getMaxMarks();
-                    int maxMarks = max != null ? max : 0;
-                    double pct = maxMarks > 0 ? (mark * 100.0) / maxMarks : 0.0;
-                    termSum[term - 1] += pct;
-                    termCount[term - 1]++;
-                }
-            }
+
+            // Use StudentGradesTableModel helpers for consistent term and final calculations
+            List<Student> only = new ArrayList<Student>();
+            only.add(s);
+            StudentGradesTableModel model = new StudentGradesTableModel(only, assigns, gradesByStudent);
+
             Double[] termAvg = new Double[4];
-            for (int t = 0; t < 4; t++) {
-                String key = base + "_T" + (t + 1);
-                if (termCount[t] > 0) {
-                    termAvg[t] = termSum[t] / termCount[t];
-                    data.put(key, String.valueOf(Math.round(termAvg[t])));
-                } else {
-                    termAvg[t] = null;
+            for (int t = 1; t <= 4; t++) {
+                String key = base + "_T" + t;
+                Double avg = model.getTermAveragePercent(studentId, t);
+                termAvg[t - 1] = avg;
+                if (avg != null) {
+                    data.put(key, String.valueOf(Math.round(avg.doubleValue())));
                 }
             }
+
             Double finalAvg = GradeCalculator.calculateFinalGrade(termAvg[0], termAvg[1], termAvg[2], termAvg[3]);
             if (finalAvg != null) {
                 int rounded = (int) Math.round(finalAvg);

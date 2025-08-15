@@ -6,7 +6,6 @@ import java.time.LocalDate;
 import java.time.format.TextStyle;
 import java.util.*;
 import javax.swing.table.AbstractTableModel;
-import java.util.Locale;
 import sgms.dao.AttendanceDAO;
 
 /**

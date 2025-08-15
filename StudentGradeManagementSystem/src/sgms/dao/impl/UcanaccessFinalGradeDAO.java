@@ -2,7 +2,7 @@ package sgms.dao.impl;
 
 import sgms.dao.FinalGradeDAO;
 import sgms.model.FinalGrade;
-import sgms.dao.Db;
+import sgms.dao.DB;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -32,7 +32,7 @@ public class UcanaccessFinalGradeDAO implements FinalGradeDAO {
 
     @Override
     public List<FinalGrade> findByGradeLevel(int gradeLevel) throws SQLException {
-        try (Connection c = Db.get(); PreparedStatement ps = c.prepareStatement(SELECT_BY_GRADE_LEVEL)) {
+        try (Connection c = DB.get(); PreparedStatement ps = c.prepareStatement(SELECT_BY_GRADE_LEVEL)) {
             ps.setInt(1, gradeLevel);
             try (ResultSet rs = ps.executeQuery()) {
                 List<FinalGrade> list = new ArrayList<>();
@@ -81,7 +81,7 @@ public class UcanaccessFinalGradeDAO implements FinalGradeDAO {
     
     @Override
     public List<Integer> findGradeLevels() throws SQLException {
-        try (Connection c = Db.get(); PreparedStatement ps = c.prepareStatement(SELECT_GRADE_LEVELS); ResultSet rs = ps.executeQuery()) {
+        try (Connection c = DB.get(); PreparedStatement ps = c.prepareStatement(SELECT_GRADE_LEVELS); ResultSet rs = ps.executeQuery()) {
             List<Integer> grades = new ArrayList<>();
             while (rs.next()) {
                 grades.add(rs.getInt(1));

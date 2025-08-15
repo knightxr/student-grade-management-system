@@ -1,7 +1,7 @@
 package sgms.dao.impl;
 
 import sgms.dao.FeedbackDAO;
-import sgms.dao.Db;
+import sgms.dao.DB;
 import java.sql.*;
 import java.util.HashMap;
 import java.util.Map;
@@ -21,7 +21,7 @@ public class UcanaccessFeedbackDAO implements FeedbackDAO {
     @Override
     public Map<Integer, String> findByCourse(int courseId) throws SQLException {
         Map<Integer, String> map = new HashMap<>();
-        try (Connection c = Db.get(); PreparedStatement ps = c.prepareStatement(SELECT_FEEDBACK_BY_COURSE)) {
+        try (Connection c = DB.get(); PreparedStatement ps = c.prepareStatement(SELECT_FEEDBACK_BY_COURSE)) {
             ps.setInt(1, courseId);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
@@ -34,7 +34,7 @@ public class UcanaccessFeedbackDAO implements FeedbackDAO {
 
     @Override
     public void upsert(int studentId, int courseId, String note) throws SQLException {
-        try (Connection c = Db.get();
+        try (Connection c = DB.get();
              PreparedStatement psUpdate = c.prepareStatement(UPDATE_FEEDBACK);
              PreparedStatement psInsert = c.prepareStatement(INSERT_FEEDBACK)) {
             psUpdate.setString(1, note);
@@ -51,7 +51,7 @@ public class UcanaccessFeedbackDAO implements FeedbackDAO {
 
     @Override
     public void delete(int studentId, int courseId) throws SQLException {
-        try (Connection c = Db.get(); PreparedStatement ps = c.prepareStatement(DELETE_FEEDBACK)) {
+        try (Connection c = DB.get(); PreparedStatement ps = c.prepareStatement(DELETE_FEEDBACK)) {
             ps.setInt(1, studentId);
             ps.setInt(2, courseId);
             ps.executeUpdate();

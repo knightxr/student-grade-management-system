@@ -3,7 +3,7 @@ package sgms.util;
 import java.sql.Connection;
 import java.sql.SQLException;
 
-import sgms.dao.Db;
+import sgms.dao.DB;
 
 /**
  * @deprecated Use {@link sgms.dao.Db} directly.
@@ -22,7 +22,7 @@ public final class DBManager {
 
     /** Call this from legacy code to obtain a live connection */
     public static Connection get() throws SQLException {
-        return Db.get();
+        return DB.get();
     }
 
     private DBManager() { }   // utility class – no instances

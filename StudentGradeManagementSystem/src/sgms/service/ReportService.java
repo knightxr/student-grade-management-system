@@ -1,6 +1,6 @@
 package sgms.service;
 
-import sgms.dao.Db;
+import sgms.dao.DB;
 import sgms.dao.AssignmentDAO;
 import sgms.dao.CourseDAO;
 import sgms.dao.FeedbackDAO;
@@ -75,7 +75,7 @@ public class ReportService {
     public ArrayList<ReportRow> termReport(int term) throws SQLException {
         ArrayList<ReportRow> list = new ArrayList<>();
         UcanaccessReportDAO dao = new UcanaccessReportDAO();
-        try (Connection c = Db.get(); ResultSet rs = dao.queryTermReport(c, term)) {
+        try (Connection c = DB.get(); ResultSet rs = dao.queryTermReport(c, term)) {
             while (rs.next()) {
                 ReportRow row = new ReportRow();
                 row.setStudentId(rs.getInt("studentId"));

@@ -31,7 +31,7 @@ public class ForgotPasswordPage extends javax.swing.JFrame {
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
-        jLabelLillyHouseSchoolLibrary = new javax.swing.JLabel();
+        jLabelStudentGradeManagementSystem = new javax.swing.JLabel();
         jLabelEnterRequiredDetails = new javax.swing.JLabel();
         jLabelResetPassword = new javax.swing.JLabel();
         jLabelUsername = new javax.swing.JLabel();
@@ -49,9 +49,9 @@ public class ForgotPasswordPage extends javax.swing.JFrame {
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setSize(new java.awt.Dimension(1366, 768));
 
-        jLabelLillyHouseSchoolLibrary.setFont(new java.awt.Font("SansSerif", 1, 36)); // NOI18N
-        jLabelLillyHouseSchoolLibrary.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        jLabelLillyHouseSchoolLibrary.setText("Student Grade Management System");
+        jLabelStudentGradeManagementSystem.setFont(new java.awt.Font("SansSerif", 1, 36)); // NOI18N
+        jLabelStudentGradeManagementSystem.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        jLabelStudentGradeManagementSystem.setText("Student Grade Management System");
 
         jLabelEnterRequiredDetails.setFont(new java.awt.Font("Segoe UI", 0, 20)); // NOI18N
         jLabelEnterRequiredDetails.setForeground(new java.awt.Color(102, 153, 255));
@@ -158,7 +158,7 @@ public class ForgotPasswordPage extends javax.swing.JFrame {
                         .addGap(49, 49, 49)
                         .addComponent(btnBack)
                         .addGap(260, 260, 260)
-                        .addComponent(jLabelLillyHouseSchoolLibrary)))
+                        .addComponent(jLabelStudentGradeManagementSystem)))
                 .addContainerGap(361, Short.MAX_VALUE))
             .addGroup(layout.createSequentialGroup()
                 .addGap(41, 41, 41)
@@ -179,7 +179,7 @@ public class ForgotPasswordPage extends javax.swing.JFrame {
                         .addComponent(btnBack))
                     .addGroup(layout.createSequentialGroup()
                         .addGap(15, 15, 15)
-                        .addComponent(jLabelLillyHouseSchoolLibrary, javax.swing.GroupLayout.PREFERRED_SIZE, 50, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addComponent(jLabelStudentGradeManagementSystem, javax.swing.GroupLayout.PREFERRED_SIZE, 50, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addGap(33, 33, 33)
                         .addComponent(jLabelResetPassword, javax.swing.GroupLayout.PREFERRED_SIZE, 51, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
@@ -318,10 +318,10 @@ public class ForgotPasswordPage extends javax.swing.JFrame {
     private javax.swing.JLabel jLabelAdministratorPassword;
     private javax.swing.JLabel jLabelCreateedByJacquesSmit;
     private javax.swing.JLabel jLabelEnterRequiredDetails;
-    private javax.swing.JLabel jLabelLillyHouseSchoolLibrary;
     private javax.swing.JLabel jLabelLoginError;
     private javax.swing.JLabel jLabelNewPassword;
     private javax.swing.JLabel jLabelResetPassword;
+    private javax.swing.JLabel jLabelStudentGradeManagementSystem;
     private javax.swing.JLabel jLabelUsername;
     private javax.swing.JPasswordField jPasswordFieldAdministratorPassword;
     private javax.swing.JPasswordField jPasswordFieldNewPassword;

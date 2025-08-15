@@ -5,7 +5,6 @@ import java.util.List;
 import javax.swing.table.AbstractTableModel;
 
 import sgms.model.Student;
-import sgms.util.GradeCalculator;
 
 /**
  * Final Grades summary for a selected grade (across ALL its courses).

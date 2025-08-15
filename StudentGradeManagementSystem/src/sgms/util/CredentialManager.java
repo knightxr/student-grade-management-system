@@ -5,7 +5,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-import sgms.dao.Db;
+import sgms.dao.DB;
 
 /**
  * Simple credential manager backed by the Access database. This implementation
@@ -36,7 +36,7 @@ public final class CredentialManager {
             return false;
         }
 
-        try (Connection c = Db.get(); PreparedStatement ps = c.prepareStatement(SQL_VALIDATE_LOGIN)) {
+        try (Connection c = DB.get(); PreparedStatement ps = c.prepareStatement(SQL_VALIDATE_LOGIN)) {
             ps.setString(1, username.trim());
             try (ResultSet rs = ps.executeQuery()) {
                 if (!rs.next()) {
@@ -55,7 +55,7 @@ public final class CredentialManager {
         if (!isValidUsername(username)) {
             return false;
         }
-        try (Connection c = Db.get(); PreparedStatement ps = c.prepareStatement(SQL_CHECK_USERNAME)) {
+        try (Connection c = DB.get(); PreparedStatement ps = c.prepareStatement(SQL_CHECK_USERNAME)) {
             ps.setString(1, username.trim().toLowerCase());
             try (ResultSet rs = ps.executeQuery()) {
                 return rs.next();
@@ -70,7 +70,7 @@ public final class CredentialManager {
         if (!isValidUsername(username) || !isValidPassword(password)) {
             return false;
         }
-        try (Connection c = Db.get(); PreparedStatement ps = c.prepareStatement(SQL_ADD_USER)) {
+        try (Connection c = DB.get(); PreparedStatement ps = c.prepareStatement(SQL_ADD_USER)) {
             ps.setString(1, name);
             ps.setString(2, username.trim().toLowerCase());
             ps.setString(3, hashPassword(password.trim()));
@@ -85,7 +85,7 @@ public final class CredentialManager {
         if (!isValidUsername(username) || !isValidPassword(newPassword)) {
             return false;
         }
-        try (Connection c = Db.get(); PreparedStatement ps = c.prepareStatement(SQL_RESET_PASSWORD)) {
+        try (Connection c = DB.get(); PreparedStatement ps = c.prepareStatement(SQL_RESET_PASSWORD)) {
             ps.setString(1, hashPassword(newPassword.trim()));
             ps.setString(2, username.trim().toLowerCase());
             return ps.executeUpdate() == 1;
@@ -99,7 +99,7 @@ public final class CredentialManager {
         if (!isValidPassword(adminPassword)) {
             return false;
         }
-        try (Connection c = Db.get(); PreparedStatement ps = c.prepareStatement(SQL_IS_ADMIN_PASSWORD)) {
+        try (Connection c = DB.get(); PreparedStatement ps = c.prepareStatement(SQL_IS_ADMIN_PASSWORD)) {
             ps.setString(1, "admin");
             ps.setString(2, hashPassword(adminPassword.trim()));
             try (ResultSet rs = ps.executeQuery()) {

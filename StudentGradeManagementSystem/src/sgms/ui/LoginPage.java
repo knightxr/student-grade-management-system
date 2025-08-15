@@ -25,7 +25,7 @@ public class LoginPage extends javax.swing.JFrame {
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
-        jLabelLillyHouseSchoolLibrary = new javax.swing.JLabel();
+        jLabelStudentGradeManagementSystem = new javax.swing.JLabel();
         jLabelPleaseSignIn = new javax.swing.JLabel();
         jLabelWelcome = new javax.swing.JLabel();
         jLabelUsername = new javax.swing.JLabel();
@@ -43,9 +43,9 @@ public class LoginPage extends javax.swing.JFrame {
         setResizable(false);
         setSize(new java.awt.Dimension(1366, 768));
 
-        jLabelLillyHouseSchoolLibrary.setFont(new java.awt.Font("SansSerif", 1, 36)); // NOI18N
-        jLabelLillyHouseSchoolLibrary.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        jLabelLillyHouseSchoolLibrary.setText("Student Grade Management System");
+        jLabelStudentGradeManagementSystem.setFont(new java.awt.Font("SansSerif", 1, 36)); // NOI18N
+        jLabelStudentGradeManagementSystem.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        jLabelStudentGradeManagementSystem.setText("Student Grade Management System");
 
         jLabelPleaseSignIn.setFont(new java.awt.Font("Segoe UI", 0, 20)); // NOI18N
         jLabelPleaseSignIn.setForeground(new java.awt.Color(102, 153, 255));
@@ -158,7 +158,7 @@ public class LoginPage extends javax.swing.JFrame {
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
                 .addContainerGap(377, Short.MAX_VALUE)
-                .addComponent(jLabelLillyHouseSchoolLibrary)
+                .addComponent(jLabelStudentGradeManagementSystem)
                 .addGap(374, 374, 374))
         );
 
@@ -168,7 +168,7 @@ public class LoginPage extends javax.swing.JFrame {
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
                 .addGap(17, 17, 17)
-                .addComponent(jLabelLillyHouseSchoolLibrary, javax.swing.GroupLayout.PREFERRED_SIZE, 50, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addComponent(jLabelStudentGradeManagementSystem, javax.swing.GroupLayout.PREFERRED_SIZE, 50, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(48, 48, 48)
                 .addComponent(jLabelWelcome, javax.swing.GroupLayout.PREFERRED_SIZE, 51, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
@@ -299,10 +299,10 @@ public class LoginPage extends javax.swing.JFrame {
     private javax.swing.JButton btnSignUp;
     private javax.swing.JButton jButtonNeedHelp;
     private javax.swing.JLabel jLabelCreateedByJacquesSmit;
-    private javax.swing.JLabel jLabelLillyHouseSchoolLibrary;
     private javax.swing.JLabel jLabelLoginError;
     private javax.swing.JLabel jLabelPassword;
     private javax.swing.JLabel jLabelPleaseSignIn;
+    private javax.swing.JLabel jLabelStudentGradeManagementSystem;
     private javax.swing.JLabel jLabelUsername;
     private javax.swing.JLabel jLabelWelcome;
     private javax.swing.JPasswordField jPasswordFieldLoginPassword;

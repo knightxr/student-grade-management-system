@@ -28,7 +28,7 @@ public class SignupPage extends javax.swing.JFrame {
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
-        jLabelLillyHouseSchoolLibrary = new javax.swing.JLabel();
+        jLabelStudentGradeManagementSystem = new javax.swing.JLabel();
         jLabelEnterRequiredDetails = new javax.swing.JLabel();
         jLabelCreateAnAccount = new javax.swing.JLabel();
         jLabelName = new javax.swing.JLabel();
@@ -48,9 +48,9 @@ public class SignupPage extends javax.swing.JFrame {
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setResizable(false);
 
-        jLabelLillyHouseSchoolLibrary.setFont(new java.awt.Font("SansSerif", 1, 36)); // NOI18N
-        jLabelLillyHouseSchoolLibrary.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        jLabelLillyHouseSchoolLibrary.setText("Student Grade Management System");
+        jLabelStudentGradeManagementSystem.setFont(new java.awt.Font("SansSerif", 1, 36)); // NOI18N
+        jLabelStudentGradeManagementSystem.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        jLabelStudentGradeManagementSystem.setText("Student Grade Management System");
 
         jLabelEnterRequiredDetails.setFont(new java.awt.Font("Segoe UI", 0, 20)); // NOI18N
         jLabelEnterRequiredDetails.setForeground(new java.awt.Color(102, 153, 255));
@@ -144,7 +144,7 @@ public class SignupPage extends javax.swing.JFrame {
                 .addGap(48, 48, 48)
                 .addComponent(btnBack)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                .addComponent(jLabelLillyHouseSchoolLibrary)
+                .addComponent(jLabelStudentGradeManagementSystem)
                 .addGap(365, 365, 365))
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
                 .addContainerGap(502, Short.MAX_VALUE)
@@ -188,7 +188,7 @@ public class SignupPage extends javax.swing.JFrame {
             .addGroup(layout.createSequentialGroup()
                 .addGap(15, 15, 15)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jLabelLillyHouseSchoolLibrary, javax.swing.GroupLayout.PREFERRED_SIZE, 50, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jLabelStudentGradeManagementSystem, javax.swing.GroupLayout.PREFERRED_SIZE, 50, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addGroup(layout.createSequentialGroup()
                         .addGap(8, 8, 8)
                         .addComponent(btnBack)))
@@ -349,8 +349,8 @@ public class SignupPage extends javax.swing.JFrame {
     private javax.swing.JLabel jLabelCreateedByJacquesSmit;
     private javax.swing.JLabel jLabelEnterRequiredDetails;
     private javax.swing.JLabel jLabelErrorText;
-    private javax.swing.JLabel jLabelLillyHouseSchoolLibrary;
     private javax.swing.JLabel jLabelName;
+    private javax.swing.JLabel jLabelStudentGradeManagementSystem;
     private javax.swing.JLabel jLabelUsername;
     private javax.swing.JLabel jLabelYourPassword;
     private javax.swing.JPasswordField jPasswordFieldAdministratorPassword;

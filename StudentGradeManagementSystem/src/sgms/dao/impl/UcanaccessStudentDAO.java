@@ -3,7 +3,7 @@ package sgms.dao.impl;
 import sgms.dao.StudentDAO;
 import sgms.model.Student;
 import sgms.model.Course;
-import sgms.dao.Db;
+import sgms.dao.DB;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -45,7 +45,7 @@ public class UcanaccessStudentDAO implements StudentDAO {
     // add a new student to the table
     @Override
     public Student add(Student s) throws SQLException {
-        try (Connection c = Db.get();
+        try (Connection c = DB.get();
              PreparedStatement ps = c.prepareStatement(INSERT_STUDENT, Statement.RETURN_GENERATED_KEYS)) {
 
             ps.setString(1, s.getFirstName());
@@ -66,7 +66,7 @@ public class UcanaccessStudentDAO implements StudentDAO {
     // update the student information
     @Override
     public boolean update(Student s) throws SQLException {
-        try (Connection c = Db.get(); PreparedStatement ps = c.prepareStatement(UPDATE_STUDENT)) {
+        try (Connection c = DB.get(); PreparedStatement ps = c.prepareStatement(UPDATE_STUDENT)) {
             ps.setString(1, s.getFirstName());
             ps.setString(2, s.getLastName());
             ps.setInt(3, s.getGradeLevel());
@@ -78,7 +78,7 @@ public class UcanaccessStudentDAO implements StudentDAO {
     // remove a student and any enrollments
     @Override
     public boolean delete(int id) throws SQLException {
-        try (Connection c = Db.get();
+        try (Connection c = DB.get();
              PreparedStatement psEnroll = c.prepareStatement(DELETE_ENROLLMENTS);
              PreparedStatement psStudent = c.prepareStatement(DELETE_STUDENT)) {
 
@@ -94,7 +94,7 @@ public class UcanaccessStudentDAO implements StudentDAO {
     // find a single student; returns null if not found
     @Override
     public Student findById(int id) throws SQLException {
-        try (Connection c = Db.get(); PreparedStatement ps = c.prepareStatement(SELECT_STUDENT_BY_ID)) {
+        try (Connection c = DB.get(); PreparedStatement ps = c.prepareStatement(SELECT_STUDENT_BY_ID)) {
             ps.setInt(1, id);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
@@ -108,7 +108,7 @@ public class UcanaccessStudentDAO implements StudentDAO {
     // list all students
     @Override
     public List<Student> findAll() throws SQLException {
-        try (Connection c = Db.get(); PreparedStatement ps = c.prepareStatement(SELECT_ALL_STUDENTS); ResultSet rs = ps.executeQuery()) {
+        try (Connection c = DB.get(); PreparedStatement ps = c.prepareStatement(SELECT_ALL_STUDENTS); ResultSet rs = ps.executeQuery()) {
             List<Student> list = new ArrayList<>();
             while (rs.next()) {
                 list.add(map(rs));
@@ -120,7 +120,7 @@ public class UcanaccessStudentDAO implements StudentDAO {
     // students in a given grade
     @Override
     public List<Student> findByGradeLevel(int gradeLevel) throws SQLException {
-        try (Connection c = Db.get(); PreparedStatement ps = c.prepareStatement(SELECT_STUDENTS_BY_GRADE)) {
+        try (Connection c = DB.get(); PreparedStatement ps = c.prepareStatement(SELECT_STUDENTS_BY_GRADE)) {
             ps.setInt(1, gradeLevel);
             try (ResultSet rs = ps.executeQuery()) {
                 List<Student> list = new ArrayList<>();
@@ -135,7 +135,7 @@ public class UcanaccessStudentDAO implements StudentDAO {
     // distinct grade levels
     @Override
     public List<Integer> findGradeLevels() throws SQLException {
-        try (Connection c = Db.get(); PreparedStatement ps = c.prepareStatement(SELECT_GRADE_LEVELS); ResultSet rs = ps.executeQuery()) {
+        try (Connection c = DB.get(); PreparedStatement ps = c.prepareStatement(SELECT_GRADE_LEVELS); ResultSet rs = ps.executeQuery()) {
             List<Integer> grades = new ArrayList<>();
             while (rs.next()) {
                 grades.add(rs.getInt("gradeLevel"));
@@ -147,7 +147,7 @@ public class UcanaccessStudentDAO implements StudentDAO {
     // all available courses
     @Override
     public List<Course> findCourses() throws SQLException {
-        try (Connection c = Db.get(); PreparedStatement ps = c.prepareStatement(SELECT_COURSES); ResultSet rs = ps.executeQuery()) {
+        try (Connection c = DB.get(); PreparedStatement ps = c.prepareStatement(SELECT_COURSES); ResultSet rs = ps.executeQuery()) {
             List<Course> courses = new ArrayList<>();
             while (rs.next()) {
                 courses.add(new Course(rs.getInt("courseId"),
@@ -162,7 +162,7 @@ public class UcanaccessStudentDAO implements StudentDAO {
     // enroll a student into a course
     @Override
     public boolean enrollStudentInCourse(int studentId, int courseId) throws SQLException {
-        try (Connection c = Db.get(); PreparedStatement ps = c.prepareStatement(ENROLL_STUDENT)) {
+        try (Connection c = DB.get(); PreparedStatement ps = c.prepareStatement(ENROLL_STUDENT)) {
             ensureEnrollmentTableExists(c);
             ps.setInt(1, studentId);
             ps.setInt(2, courseId);
@@ -173,7 +173,7 @@ public class UcanaccessStudentDAO implements StudentDAO {
     // students enrolled in a course
     @Override
     public List<Student> findByCourse(int courseId) throws SQLException {
-        try (Connection c = Db.get(); PreparedStatement ps = c.prepareStatement(SELECT_STUDENTS_BY_COURSE)) {
+        try (Connection c = DB.get(); PreparedStatement ps = c.prepareStatement(SELECT_STUDENTS_BY_COURSE)) {
             ensureEnrollmentTableExists(c);
             ps.setInt(1, courseId);
             try (ResultSet rs = ps.executeQuery()) {
@@ -189,7 +189,7 @@ public class UcanaccessStudentDAO implements StudentDAO {
     // remove a student from a course
     @Override
     public boolean removeStudentFromCourse(int studentId, int courseId) throws SQLException {
-        try (Connection c = Db.get(); PreparedStatement ps = c.prepareStatement(DELETE_ENROLLMENT)) {
+        try (Connection c = DB.get(); PreparedStatement ps = c.prepareStatement(DELETE_ENROLLMENT)) {
             ensureEnrollmentTableExists(c);
             ps.setInt(1, studentId);
             ps.setInt(2, courseId);

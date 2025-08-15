@@ -8,7 +8,6 @@ import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Locale;
 import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -253,11 +252,6 @@ public final class ReportCardGenerator {
             b.append(escapeXml(parts[i]));
         }
         return b.toString();
-    }
-
-    private static String normalize(String s) {
-        if (s == null) return "";
-        return s.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]", "");
     }
 
     private static String escapeXml(String s) {

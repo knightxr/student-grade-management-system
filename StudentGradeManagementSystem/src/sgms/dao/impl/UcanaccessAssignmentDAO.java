@@ -2,7 +2,7 @@ package sgms.dao.impl;
 
 import sgms.dao.AssignmentDAO;
 import sgms.model.Assignment;
-import sgms.dao.Db;
+import sgms.dao.DB;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -25,7 +25,7 @@ public class UcanaccessAssignmentDAO implements AssignmentDAO {
 
     @Override
     public Assignment add(Assignment a) throws SQLException {
-        try (Connection c = Db.get(); PreparedStatement ps = c.prepareStatement(INSERT_ASSIGNMENT, Statement.RETURN_GENERATED_KEYS)) {
+        try (Connection c = DB.get(); PreparedStatement ps = c.prepareStatement(INSERT_ASSIGNMENT, Statement.RETURN_GENERATED_KEYS)) {
             ps.setInt(1, a.getCourseId());
             ps.setString(2, a.getTitle());
             if (a.getMaxMarks() != null) {
@@ -47,7 +47,7 @@ public class UcanaccessAssignmentDAO implements AssignmentDAO {
 
     @Override
     public void update(Assignment a) throws SQLException {
-        try (Connection c = Db.get(); PreparedStatement ps = c.prepareStatement(UPDATE_ASSIGNMENT)) {
+        try (Connection c = DB.get(); PreparedStatement ps = c.prepareStatement(UPDATE_ASSIGNMENT)) {
             ps.setString(1, a.getTitle());
             if (a.getMaxMarks() != null) {
                 ps.setInt(2, a.getMaxMarks());
@@ -63,7 +63,7 @@ public class UcanaccessAssignmentDAO implements AssignmentDAO {
     
     @Override
     public boolean delete(int assignmentId) throws SQLException {
-        try (Connection c = Db.get();
+        try (Connection c = DB.get();
              PreparedStatement psGrades = c.prepareStatement(DELETE_GRADES);
              PreparedStatement psAssign = c.prepareStatement(DELETE_ASSIGNMENT)) {
             psGrades.setInt(1, assignmentId);
@@ -75,7 +75,7 @@ public class UcanaccessAssignmentDAO implements AssignmentDAO {
 
     @Override
     public List<Assignment> findByCourse(int courseId) throws SQLException {
-        try (Connection c = Db.get(); PreparedStatement ps = c.prepareStatement(SELECT_BY_COURSE)) {
+        try (Connection c = DB.get(); PreparedStatement ps = c.prepareStatement(SELECT_BY_COURSE)) {
             ps.setInt(1, courseId);
             try (ResultSet rs = ps.executeQuery()) {
                 List<Assignment> list = new ArrayList<>();

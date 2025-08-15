@@ -2,7 +2,7 @@ package sgms.dao.impl;
 
 import sgms.dao.CourseDAO;
 import sgms.model.Course;
-import sgms.dao.Db;
+import sgms.dao.DB;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -32,7 +32,7 @@ public class UcanaccessCourseDAO implements CourseDAO {
 
     @Override
     public List<Course> findByGrade(int gradeLevel) throws SQLException {
-        try (Connection c = Db.get(); PreparedStatement ps = c.prepareStatement(SELECT_BY_GRADE)) {
+        try (Connection c = DB.get(); PreparedStatement ps = c.prepareStatement(SELECT_BY_GRADE)) {
             ps.setInt(1, gradeLevel);
             try (ResultSet rs = ps.executeQuery()) {
                 List<Course> list = new ArrayList<>();
@@ -51,7 +51,7 @@ public class UcanaccessCourseDAO implements CourseDAO {
 
     @Override
     public Course add(Course c) throws SQLException {
-        try (Connection conn = Db.get(); PreparedStatement ps = conn.prepareStatement(INSERT_COURSE, Statement.RETURN_GENERATED_KEYS)) {
+        try (Connection conn = DB.get(); PreparedStatement ps = conn.prepareStatement(INSERT_COURSE, Statement.RETURN_GENERATED_KEYS)) {
             ps.setString(1, c.getCourseCode());
             ps.setString(2, c.getCourseName());
             ps.setInt(3, c.getGradeLevel());
@@ -67,7 +67,7 @@ public class UcanaccessCourseDAO implements CourseDAO {
 
     @Override
     public boolean update(Course c) throws SQLException {
-        try (Connection conn = Db.get(); PreparedStatement ps = conn.prepareStatement(UPDATE_COURSE)) {
+        try (Connection conn = DB.get(); PreparedStatement ps = conn.prepareStatement(UPDATE_COURSE)) {
             ps.setString(1, c.getCourseName());
             ps.setInt(2, c.getCourseId());
             return ps.executeUpdate() > 0;
@@ -76,7 +76,7 @@ public class UcanaccessCourseDAO implements CourseDAO {
 
     @Override
     public boolean delete(int courseId) throws SQLException {
-        try (Connection conn = Db.get(); PreparedStatement ps = conn.prepareStatement(DELETE_COURSE)) {
+        try (Connection conn = DB.get(); PreparedStatement ps = conn.prepareStatement(DELETE_COURSE)) {
             ps.setInt(1, courseId);
             return ps.executeUpdate() > 0;
         }
@@ -84,7 +84,7 @@ public class UcanaccessCourseDAO implements CourseDAO {
 
     @Override
     public Course findByCode(String code) throws SQLException {
-        try (Connection conn = Db.get(); PreparedStatement ps = conn.prepareStatement(FIND_BY_CODE)) {
+        try (Connection conn = DB.get(); PreparedStatement ps = conn.prepareStatement(FIND_BY_CODE)) {
             ps.setString(1, code);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {

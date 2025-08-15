@@ -73,7 +73,6 @@ public class MainPage extends javax.swing.JFrame {
     private final FeedbackDAO feedbackDAO = new UcanaccessFeedbackDAO();
     private final AssignmentDAO assignmentDAO = new UcanaccessAssignmentDAO();
     private final GradeDAO gradeDAO = new UcanaccessGradeDAO();
-    private final AttendanceDAO attendanceDAO = new UcanaccessAttendanceDAO();
     private javax.swing.JButton lastActionButton;
     
     private void setActiveButton(javax.swing.JButton active) {

@@ -4,7 +4,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-import sgms.dao.Db;
+import sgms.dao.DB;
 
 /**
  * One-off schema bootstrapper. Run this class ONCE to create the empty tables
@@ -14,7 +14,7 @@ import sgms.dao.Db;
 public class DBSetup {
 
     public static void main(String[] args) {
-        try (Connection c = Db.get(); Statement s = c.createStatement()) {
+        try (Connection c = DB.get(); Statement s = c.createStatement()) {
 
             // 1 ───────── USERS ────────────────────────────────────────────────
             s.executeUpdate("""

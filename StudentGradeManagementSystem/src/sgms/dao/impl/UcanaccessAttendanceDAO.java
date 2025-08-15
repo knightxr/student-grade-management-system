@@ -1,7 +1,7 @@
 package sgms.dao.impl;
 
 import sgms.dao.AttendanceDAO;
-import sgms.dao.Db;
+import sgms.dao.DB;
 
 import java.sql.*;
 import java.time.LocalDate;
@@ -26,7 +26,7 @@ public class UcanaccessAttendanceDAO implements AttendanceDAO {
     @Override
     public Map<Integer, Map<LocalDate, Boolean>> findByCourseAndDateRange(int courseId, LocalDate start, LocalDate end) throws SQLException {
         Map<Integer, Map<LocalDate, Boolean>> map = new HashMap<>();
-        try (Connection c = Db.get(); PreparedStatement ps = c.prepareStatement(SELECT_BY_COURSE_AND_RANGE)) {
+        try (Connection c = DB.get(); PreparedStatement ps = c.prepareStatement(SELECT_BY_COURSE_AND_RANGE)) {
             ps.setInt(1, courseId);
             ps.setDate(2, Date.valueOf(start));
             ps.setDate(3, Date.valueOf(end));
@@ -44,7 +44,7 @@ public class UcanaccessAttendanceDAO implements AttendanceDAO {
 
     @Override
     public void upsert(int studentId, int courseId, LocalDate date, boolean present) throws SQLException {
-        try (Connection c = Db.get();
+        try (Connection c = DB.get();
              PreparedStatement psUpdate = c.prepareStatement(UPDATE_ATTENDANCE);
              PreparedStatement psInsert = c.prepareStatement(INSERT_ATTENDANCE)) {
             psUpdate.setBoolean(1, present);

@@ -28,7 +28,7 @@
               <EmptySpace min="-2" pref="48" max="-2" attributes="0"/>
               <Component id="btnBack" min="-2" max="-2" attributes="0"/>
               <EmptySpace max="32767" attributes="0"/>
-              <Component id="jLabelLillyHouseSchoolLibrary" min="-2" max="-2" attributes="0"/>
+              <Component id="jLabelStudentGradeManagementSystem" min="-2" max="-2" attributes="0"/>
               <EmptySpace min="-2" pref="365" max="-2" attributes="0"/>
           </Group>
           <Group type="102" alignment="1" attributes="0">
@@ -86,7 +86,7 @@
           <Group type="102" alignment="0" attributes="0">
               <EmptySpace min="-2" pref="15" max="-2" attributes="0"/>
               <Group type="103" groupAlignment="0" attributes="0">
-                  <Component id="jLabelLillyHouseSchoolLibrary" min="-2" pref="50" max="-2" attributes="0"/>
+                  <Component id="jLabelStudentGradeManagementSystem" min="-2" pref="50" max="-2" attributes="0"/>
                   <Group type="102" alignment="0" attributes="0">
                       <EmptySpace min="-2" pref="8" max="-2" attributes="0"/>
                       <Component id="btnBack" min="-2" max="-2" attributes="0"/>
@@ -129,7 +129,7 @@
     </DimensionLayout>
   </Layout>
   <SubComponents>
-    <Component class="javax.swing.JLabel" name="jLabelLillyHouseSchoolLibrary">
+    <Component class="javax.swing.JLabel" name="jLabelStudentGradeManagementSystem">
       <Properties>
         <Property name="font" type="java.awt.Font" editor="org.netbeans.beaninfo.editors.FontEditor">
           <Font name="SansSerif" size="36" style="1"/>

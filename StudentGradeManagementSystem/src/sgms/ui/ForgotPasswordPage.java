@@ -228,35 +228,90 @@ public class ForgotPasswordPage extends javax.swing.JFrame {
      * Handles the action when the 'Reset Password' button is clicked.
      */
     private void btnResetPasswordActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnResetPasswordActionPerformed
-        String username = jTextFieldUsername.getText().trim().toLowerCase(); // Convert to lowercase
-        String newPassword = new String(jPasswordFieldNewPassword.getPassword()).trim();
-        String adminPassword = new String(jPasswordFieldAdministratorPassword.getPassword()).trim();
+        // Read inputs
+    String username = jTextFieldUsername.getText().trim().toLowerCase();
 
-        if (username.isEmpty() || newPassword.isEmpty() || adminPassword.isEmpty()) {
-            jLabelLoginError.setText("Please fill in all fields.");
-            return;
-        }
-        if (!username.matches("[A-Za-z0-9_]{4,20}") || newPassword.length() < 6) {
-            jLabelLoginError.setText("Invalid username or password format.");
-            return;
-        }
-        if (!authService.isAdminPassword(adminPassword)) {
-            jLabelLoginError.setText("Incorrect administrator password.");
-            return;
-        }
+    char[] newPwChars   = jPasswordFieldNewPassword.getPassword();
+    char[] adminPwChars = jPasswordFieldAdministratorPassword.getPassword();
+    String newPassword   = new String(newPwChars).trim();
+    String adminPassword = new String(adminPwChars).trim();
 
-        if (authService.reset(username, newPassword)) {
-            JOptionPane.showMessageDialog(null,
-                    "Password successfully updated. You can now use it to log in.",
-                    "Success",
-                    JOptionPane.INFORMATION_MESSAGE);
+    // Reset any old error
+    jLabelLoginError.setText("");
 
-            LoginPage loginPage = new LoginPage();
-            loginPage.setVisible(true);
-            dispose();
-        } else {
-            jLabelLoginError.setText("Username not found.");
-        }
+    // Presence checks
+    if (username.isEmpty()) {
+        jLabelLoginError.setText("Please enter a username.");
+        jTextFieldUsername.requestFocus();
+        java.util.Arrays.fill(newPwChars, '\0');
+        java.util.Arrays.fill(adminPwChars, '\0');
+        return;
+    }
+    if (newPassword.isEmpty()) {
+        jLabelLoginError.setText("Please enter a new password.");
+        jPasswordFieldNewPassword.requestFocus();
+        java.util.Arrays.fill(newPwChars, '\0');
+        java.util.Arrays.fill(adminPwChars, '\0');
+        return;
+    }
+    if (adminPassword.isEmpty()) {
+        jLabelLoginError.setText("Please enter the administrator password.");
+        jPasswordFieldAdministratorPassword.requestFocus();
+        java.util.Arrays.fill(newPwChars, '\0');
+        java.util.Arrays.fill(adminPwChars, '\0');
+        return;
+    }
+
+    // Format validation
+    if (!sgms.service.ValidationService.isUsername(username)) {
+        jLabelLoginError.setText("Username must be 3–20 characters (letters, digits, underscore).");
+        jTextFieldUsername.requestFocus();
+        java.util.Arrays.fill(newPwChars, '\0');
+        java.util.Arrays.fill(adminPwChars, '\0');
+        return;
+    }
+    if (!sgms.service.ValidationService.isStrongPassword(newPassword)) {
+        jLabelLoginError.setText("Password must be at least 8 characters and include a letter and a digit.");
+        jPasswordFieldNewPassword.requestFocus();
+        java.util.Arrays.fill(newPwChars, '\0');
+        java.util.Arrays.fill(adminPwChars, '\0');
+        return;
+    }
+
+    // Admin password check
+    if (!authService.isAdminPassword(adminPassword)) {
+        jLabelLoginError.setText("Incorrect administrator password.");
+        jPasswordFieldAdministratorPassword.setText("");
+        jPasswordFieldAdministratorPassword.requestFocus();
+        java.util.Arrays.fill(newPwChars, '\0');
+        java.util.Arrays.fill(adminPwChars, '\0');
+        return;
+    }
+
+    // Attempt reset
+    boolean ok = authService.reset(username, newPassword);
+
+    // Clear password chars from memory
+    java.util.Arrays.fill(newPwChars, '\0');
+    java.util.Arrays.fill(adminPwChars, '\0');
+
+    if (ok) {
+        javax.swing.JOptionPane.showMessageDialog(
+            this,
+            "Password successfully updated. You can now sign in.",
+            "Success",
+            javax.swing.JOptionPane.INFORMATION_MESSAGE
+        );
+        LoginPage loginPage = new LoginPage();
+        loginPage.setLocationRelativeTo(null);
+        loginPage.setVisible(true);
+        dispose();
+    } else {
+        jLabelLoginError.setText("Username not found.");
+        jPasswordFieldNewPassword.setText("");
+        jPasswordFieldAdministratorPassword.setText("");
+        jPasswordFieldNewPassword.requestFocus();
+    }
 
     }//GEN-LAST:event_btnResetPasswordActionPerformed
 

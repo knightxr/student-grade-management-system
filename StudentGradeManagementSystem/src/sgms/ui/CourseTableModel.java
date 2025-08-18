@@ -7,26 +7,22 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import sgms.dao.CourseDAO;
 
 /**
- * Table model representing courses with student counts.
+ * Table model for courses with a delete checkbox and student count.
  */
 public class CourseTableModel extends AbstractTableModel {
 
-    private final String[] columns = {"Delete", "ID", "Code", "Name", "Students"};
+    private final String[] columns = { "Delete", "ID", "Code", "Name", "Students" };
     private final List<Course> courses;
-    private final Set<Integer> deletedIds = new HashSet<>();
+    private final Set<Integer> deletedIds = new HashSet<Integer>();
 
     public CourseTableModel(List<Course> list) {
-        this.courses = new ArrayList<>(list);
+        this.courses = new ArrayList<Course>(list);
     }
 
-    /**
-     * Backward-compatible constructor accepting a DAO parameter that is
-     * ignored. The model no longer accesses persistence directly.
-     */
-    public CourseTableModel(List<Course> list, CourseDAO courseDAO) {
+    // Backwards-compatible constructor (DAO not used)
+    public CourseTableModel(List<Course> list, sgms.dao.CourseDAO ignored) {
         this(list);
     }
 
@@ -48,53 +44,48 @@ public class CourseTableModel extends AbstractTableModel {
     @Override
     public Class<?> getColumnClass(int columnIndex) {
         switch (columnIndex) {
-            case 0:
-                return Boolean.class;
-            case 1:
-            case 4:
-                return Integer.class;
-            default:
-                return String.class;
+            case 0: return Boolean.class; // Delete
+            case 1: return Integer.class; // ID
+            case 4: return Integer.class; // Students
+            default: return String.class; // Code / Name
         }
     }
 
     @Override
     public boolean isCellEditable(int rowIndex, int columnIndex) {
-        return columnIndex == 0 || columnIndex == 3; // delete checkbox and course name editable
+        // Allow toggling delete and editing the course name (ID, Code, Students are read-only)
+        return columnIndex == 0 || columnIndex == 3;
     }
 
     @Override
     public Object getValueAt(int rowIndex, int columnIndex) {
         Course c = courses.get(rowIndex);
         switch (columnIndex) {
-            case 0:
-                return deletedIds.contains(c.getCourseId());
-            case 1:
-                return c.getCourseId();
-            case 2:
-                return c.getCourseCode();
-            case 3:
-                return c.getCourseName();
-            case 4:
-                return c.getStudentCount();
-            default:
-                return null;
+            case 0: return deletedIds.contains(Integer.valueOf(c.getCourseId()));
+            case 1: return Integer.valueOf(c.getCourseId());
+            case 2: return c.getCourseCode();
+            case 3: return c.getCourseName();
+            case 4: return Integer.valueOf(c.getStudentCount());
+            default: return null;
         }
     }
 
     @Override
     public void setValueAt(Object aValue, int rowIndex, int columnIndex) {
+        Course c = courses.get(rowIndex);
+
         if (columnIndex == 0) {
-            Course c = courses.get(rowIndex);
-            int id = c.getCourseId();
+            Integer id = Integer.valueOf(c.getCourseId());
             if (Boolean.TRUE.equals(aValue)) {
                 deletedIds.add(id);
             } else {
                 deletedIds.remove(id);
             }
             fireTableRowsUpdated(rowIndex, rowIndex);
-        } else if (columnIndex == 3) {
-            Course c = courses.get(rowIndex);
+            return;
+        }
+
+        if (columnIndex == 3) { // Name
             c.setCourseName(String.valueOf(aValue));
             fireTableCellUpdated(rowIndex, columnIndex);
         }
@@ -112,7 +103,7 @@ public class CourseTableModel extends AbstractTableModel {
 
     public void markDeleted(int row) {
         Course c = courses.get(row);
-        int id = c.getCourseId();
+        Integer id = Integer.valueOf(c.getCourseId());
         if (deletedIds.contains(id)) {
             deletedIds.remove(id);
         } else {
@@ -122,11 +113,12 @@ public class CourseTableModel extends AbstractTableModel {
     }
 
     public boolean isMarkedForDeletion(int row) {
-        return deletedIds.contains(courses.get(row).getCourseId());
+        if (row < 0 || row >= courses.size()) return false;
+        return deletedIds.contains(Integer.valueOf(courses.get(row).getCourseId()));
     }
 
     public Set<Integer> getDeletedIds() {
-        return new HashSet<>(deletedIds);
+        return new HashSet<Integer>(deletedIds);
     }
 
     public List<Course> getCourses() {

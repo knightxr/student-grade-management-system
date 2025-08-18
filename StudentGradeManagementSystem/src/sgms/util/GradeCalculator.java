@@ -1,30 +1,22 @@
 package sgms.util;
 
 /**
- * Simple first-principles algorithms and grade maths for the PAT.
- * - No streams/lambdas.
- * - Clear loops and integer arithmetic where appropriate.
- *
- * The final grade calculation uses TERM WEIGHTS:
+ * Basic algorithms and grade maths used in the project.
+ * The final grade calculation uses these TERM WEIGHTS:
  *   T1 = 12.5%, T2 = 25%, T3 = 12.5%, T4 = 50%
- * Missing terms are ignored and the weights of present terms are re-normalised.
+ * Missing terms are ignored and the remaining weights are re-normalised.
  */
 public final class GradeCalculator {
 
     private GradeCalculator() { }
 
-    // ------------------- TERM WEIGHTS -------------------
-    // Edit these if your school uses different weights; they should sum to 100.
+    // Term weights must add up to 100
     private static final double[] TERM_WEIGHTS = { 12.5, 25.0, 12.5, 50.0 };
 
     /**
-     * Combine up to four TERM PERCENTAGES (each 0..100) into a FINAL percentage using TERM_WEIGHTS.
+     * Combine up to four term percentages (each 0..100) into a final percentage.
      * Any null term is skipped; remaining weights are re-normalised.
      *
-     * @param t1 percent (may be null)
-     * @param t2 percent (may be null)
-     * @param t3 percent (may be null)
-     * @param t4 percent (may be null)
      * @return final percent (0..100) or null if all terms are null
      */
     public static Double calculateFinalGrade(Double t1, Double t2, Double t3, Double t4) {
@@ -43,20 +35,18 @@ public final class GradeCalculator {
             }
         }
 
-        if (weightTotal <= 0.0) {
-            return null; // no data at all
-        }
+        if (weightTotal <= 0.0) return null;
 
         double finalPct = weightedSum / weightTotal;
 
-        // clamp to [0,100] just in case of rounding noise
+        // Clamp to [0, 100]
         if (finalPct < 0.0) finalPct = 0.0;
         if (finalPct > 100.0) finalPct = 100.0;
 
         return Double.valueOf(finalPct);
     }
 
-    /** Average of an int[] (returns double). Empty array yields 0.0 */
+    /** Average of an int array (returns double). Empty array → 0.0. */
     public static double classAverage(int[] marks) {
         if (marks == null || marks.length == 0) return 0.0;
         long total = 0;
@@ -83,7 +73,7 @@ public final class GradeCalculator {
                     swapped = true;
                 }
             }
-            n--; // largest element is now at the end
+            n--; // largest element moved to the end
         }
     }
 
@@ -95,8 +85,8 @@ public final class GradeCalculator {
             if (a[i] == target) return i;
         }
         return -1;
-        }
-    
+    }
+
     /** Case-insensitive linear search for a String, returns index or -1 if not found. */
     public static int linearSearch(String[] a, String target) {
         if (a == null || target == null) return -1;

@@ -7,16 +7,16 @@ import java.sql.Statement;
 import sgms.dao.DB;
 
 /**
- * One-off schema bootstrapper. Run this class ONCE to create the empty tables
- * inside School.accdb. Afterwards do NOT run again or you will get “table
- * already exists” errors.
+ * Creates all tables in School.accdb.
+ * Run this ONCE on a new database. If you run it again, Access will say
+ * the tables already exist.
  */
 public class DBSetup {
 
     public static void main(String[] args) {
         try (Connection c = DB.get(); Statement s = c.createStatement()) {
 
-            // 1 ───────── USERS ────────────────────────────────────────────────
+            // ── 1) USERS ───────────────────────────────────────────────────
             s.executeUpdate("""
                 CREATE TABLE tblUsers (
                     userId        AUTOINCREMENT PRIMARY KEY,
@@ -27,6 +27,7 @@ public class DBSetup {
                 )
             """);
 
+            // default admin user (password hash matches the simple hasher used)
             s.executeUpdate("""
                 INSERT INTO tblUsers (fullName, username, passwordHash, role)
                 VALUES ('Administrator', 'admin',
@@ -34,7 +35,7 @@ public class DBSetup {
                         'Administrator')
             """);
 
-            // 2 ───────── STUDENTS ────────────────────────────────────────────
+            // ── 2) STUDENTS ────────────────────────────────────────────────
             s.executeUpdate("""
                 CREATE TABLE tblStudents (
                     studentId   AUTOINCREMENT PRIMARY KEY,
@@ -44,17 +45,17 @@ public class DBSetup {
                 )
             """);
 
-            // 3 ───────── COURSES ─────────────────────────────────────────────
+            // ── 3) COURSES ─────────────────────────────────────────────────
             s.executeUpdate("""
                 CREATE TABLE tblCourses (
                     courseId    AUTOINCREMENT PRIMARY KEY,
                     courseCode  TEXT(10) UNIQUE NOT NULL,
                     courseName  TEXT(50) NOT NULL,
-                    gradeLevel  INTEGER    NOT NULL
+                    gradeLevel  INTEGER   NOT NULL
                 )
             """);
 
-            // 3b ───────── STUDENT-COURSE ENROLLMENTS ──────────────────────
+            // ── 3b) ENROLMENTS (student ↔ course) ──────────────────────────
             s.executeUpdate("""
                 CREATE TABLE tblStudentCourses (
                     studentId  INTEGER NOT NULL,
@@ -65,20 +66,20 @@ public class DBSetup {
                 )
             """);
 
-            // 4 ───────── ASSIGNMENTS ────────────────────────────────────────
+            // ── 4) ASSIGNMENTS ─────────────────────────────────────────────
             s.executeUpdate("""
                 CREATE TABLE tblAssignments (
                     assignmentId  AUTOINCREMENT PRIMARY KEY,
                     courseId      INTEGER NOT NULL,
                     title         TEXT(50) NOT NULL,
-                    maxMarks      INTEGER NOT NULL,
-                    term          INTEGER NOT NULL,
-                    dueDate       DATE    NOT NULL,
+                    maxMarks      INTEGER  NOT NULL,
+                    term          INTEGER  NOT NULL,
+                    dueDate       DATE     NOT NULL,
                     FOREIGN KEY (courseId) REFERENCES tblCourses(courseId)
                 )
             """);
 
-            // 5 ───────── GRADES ──────────────────────────────────────────────
+            // ── 5) GRADES (raw marks) ──────────────────────────────────────
             s.executeUpdate("""
                 CREATE TABLE tblGrades (
                     studentId     INTEGER NOT NULL,
@@ -90,7 +91,7 @@ public class DBSetup {
                 )
             """);
 
-            // 6 ───────── FINAL GRADES ────────────────────────────────────────
+            // ── 6) FINAL GRADES (optional cache) ───────────────────────────
             s.executeUpdate("""
                 CREATE TABLE tblFinalGrades (
                     studentId  INTEGER PRIMARY KEY,
@@ -103,20 +104,21 @@ public class DBSetup {
                 )
             """);
 
-            // 7 ───────── ATTENDANCE ──────────────────────────────────────────
+            // ── 7) ATTENDANCE ──────────────────────────────────────────────
+            // Column name is attendanceDate (matches AttendanceDAO).
             s.executeUpdate("""
                 CREATE TABLE tblAttendance (
-                    studentId   INTEGER NOT NULL,
-                    courseId    INTEGER NOT NULL,
-                    lessonDate  DATE    NOT NULL,
-                    present     YESNO   DEFAULT FALSE,
-                    PRIMARY KEY (studentId, courseId, lessonDate),
+                    studentId      INTEGER NOT NULL,
+                    courseId       INTEGER NOT NULL,
+                    attendanceDate DATE    NOT NULL,
+                    present        YESNO   DEFAULT FALSE,
+                    PRIMARY KEY (studentId, courseId, attendanceDate),
                     FOREIGN KEY (studentId) REFERENCES tblStudents(studentId),
                     FOREIGN KEY (courseId)  REFERENCES tblCourses(courseId)
                 )
             """);
 
-            // 8 ───────── FEEDBACK ────────────────────────────────────────────
+            // ── 8) FEEDBACK ────────────────────────────────────────────────
             s.executeUpdate("""
                 CREATE TABLE tblFeedback (
                     feedbackId  AUTOINCREMENT PRIMARY KEY,
@@ -129,12 +131,11 @@ public class DBSetup {
                 )
             """);
 
-            System.out.println("✅  Schema installed successfully.");
+            System.out.println("Done: tables created.");
         } catch (SQLException e) {
             System.err.println("Schema creation failed: " + e.getMessage());
         }
     }
 
-    private DBSetup() {
-    }
+    private DBSetup() {}
 }

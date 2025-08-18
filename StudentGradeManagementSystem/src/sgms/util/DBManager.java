@@ -6,24 +6,25 @@ import java.sql.SQLException;
 import sgms.dao.DB;
 
 /**
- * @deprecated Use {@link sgms.dao.Db} directly.
+ * Legacy helper kept so older code still compiles.
+ * Use {@link sgms.dao.DB} directly in new code.
  */
 @Deprecated
 public final class DBManager {
 
-    /** Quick smoke test */
+    private DBManager() { } // utility class – no objects
+
+    /** Small smoke test to check the database connection. */
     public static void main(String[] args) {
         try (Connection c = get()) {
             System.out.println("Connected OK");
         } catch (SQLException e) {
-            System.err.println("Connection Failed" + e.getMessage());
+            System.err.println("Connection failed: " + e.getMessage());
         }
     }
 
-    /** Call this from legacy code to obtain a live connection */
+    /** Returns a live connection. Prefer {@link DB#get()} in new code. */
     public static Connection get() throws SQLException {
         return DB.get();
     }
-
-    private DBManager() { }   // utility class – no instances
 }

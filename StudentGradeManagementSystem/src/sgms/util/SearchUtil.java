@@ -10,12 +10,15 @@ import javax.swing.RowFilter;
 import javax.swing.table.TableModel;
 import javax.swing.table.TableRowSorter;
 
-/** Simple text search for a JTable using its existing sorter. */
+/**
+ * Small helper that adds a text search to a JTable.
+ * Works with the table's sorter and keeps things simple.
+ */
 public final class SearchUtil {
 
-    private SearchUtil() { }
+    private SearchUtil() {}
 
-    /** Call this after the table model is set. */
+    /** Wire up the text field and button to filter the given table. */
     public static void installSearch(final JTable table,
                                      final JTextField field,
                                      final JButton button) {
@@ -31,16 +34,20 @@ public final class SearchUtil {
         field.addActionListener(action);
     }
 
+    /** Apply or clear the filter on the table. */
     private static void applyFilter(JTable table, String text) {
-        // Use existing sorter if present; otherwise create one once
-        if (!(table.getRowSorter() instanceof TableRowSorter)) {
-            TableRowSorter<TableModel> sorter =
-                    new TableRowSorter<TableModel>(table.getModel());
+        // Ensure there is a TableRowSorter and that it points at the CURRENT model.
+        TableRowSorter<TableModel> sorter;
+        if (table.getRowSorter() instanceof TableRowSorter) {
+            sorter = (TableRowSorter<TableModel>) table.getRowSorter();
+            // Important when the model changes after search is installed
+            sorter.setModel(table.getModel());
+        } else {
+            sorter = new TableRowSorter<TableModel>(table.getModel());
             table.setRowSorter(sorter);
         }
 
-        TableRowSorter<?> sorter = (TableRowSorter<?>) table.getRowSorter();
-
+        // Empty text = show all rows
         if (text == null || text.trim().isEmpty()) {
             sorter.setRowFilter(null);
         } else {
@@ -48,7 +55,6 @@ public final class SearchUtil {
             sorter.setRowFilter(RowFilter.regexFilter("(?i)" + Pattern.quote(q)));
         }
 
-        // Make sure the table refreshes its view
         table.clearSelection();
         table.revalidate();
         table.repaint();

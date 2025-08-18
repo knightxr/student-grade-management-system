@@ -211,20 +211,46 @@ public class LoginPage extends javax.swing.JFrame {
      * Handles the action when the login button is clicked.
      */
     private void btnLoginActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnLoginActionPerformed
-        String username = jTextFieldLoginUsername.getText().trim();
-        String password = new String(jPasswordFieldLoginPassword.getPassword());
-        if (username.isEmpty() || password.isEmpty()) {
-            jLabelLoginError.setText("Username or password is incorrect.");
-            return;
-        }
-        boolean ok = authService.login(username, password);
-        if (ok) {
-            MainPage mainPage = new MainPage();
-            mainPage.setVisible(true);
-            dispose();
-        } else {
-            jLabelLoginError.setText("Username or password is incorrect.");
-        }
+        // Read inputs
+    String username = jTextFieldLoginUsername.getText().trim();
+    char[] pwChars = jPasswordFieldLoginPassword.getPassword();
+    String password = new String(pwChars); // use once, then clear
+
+    // Clear any old error
+    jLabelLoginError.setText("");
+
+    // Basic checks
+    if (username.isEmpty()) {
+        jLabelLoginError.setText("Please enter your username.");
+        jTextFieldLoginUsername.requestFocus();
+        java.util.Arrays.fill(pwChars, '\0');
+        return;
+    }
+    if (password.isEmpty()) {
+        jLabelLoginError.setText("Please enter your password.");
+        jPasswordFieldLoginPassword.requestFocus();
+        java.util.Arrays.fill(pwChars, '\0');
+        return;
+    }
+
+    // Try sign in
+    boolean ok = authService.login(username, password);
+
+    // Clear password chars from memory
+    java.util.Arrays.fill(pwChars, '\0');
+
+    if (ok) {
+        // Open the main window and close the login form
+        MainPage mainPage = new MainPage();
+        mainPage.setLocationRelativeTo(null);
+        mainPage.setVisible(true);
+        dispose();
+    } else {
+        // Show a generic error and clear the password box
+        jLabelLoginError.setText("Username or password is incorrect.");
+        jPasswordFieldLoginPassword.setText("");
+        jPasswordFieldLoginPassword.requestFocus();
+    }
     }//GEN-LAST:event_btnLoginActionPerformed
 
     /**

@@ -28,19 +28,21 @@ import java.util.Locale;
 import java.util.Map;
 
 /**
- * Service providing reporting features.
+ * Makes report data for the app and for the DOCX report card.
  */
 public class ReportService {
 
-    /** Container for a single term report row. */
+    /**
+     * One row in the “term report” screen.
+     */
     public static final class ReportRow {
         private int studentId;
         private String fullName;
         private String courseCode;
         private String assignmentTitle;
         private int maxMarks;
-        private Integer mark;
-        private Double percentage;
+        private Integer mark;      // raw mark (can be null)
+        private Double percentage; // 0..100 or null
 
         public int getStudentId() { return studentId; }
         public void setStudentId(int studentId) { this.studentId = studentId; }
@@ -71,60 +73,75 @@ public class ReportService {
         }
     }
 
-    /** Returns the term report rows for the given term. */
+    /**
+     * Load rows for one term (uses a single SQL query).
+     */
     public ArrayList<ReportRow> termReport(int term) throws SQLException {
-        ArrayList<ReportRow> list = new ArrayList<>();
+        ArrayList<ReportRow> list = new ArrayList<ReportRow>();
         UcanaccessReportDAO dao = new UcanaccessReportDAO();
-        try (Connection c = DB.get(); ResultSet rs = dao.queryTermReport(c, term)) {
+
+        try (Connection c = DB.get();
+             ResultSet rs = dao.queryTermReport(c, term)) {
+
             while (rs.next()) {
                 ReportRow row = new ReportRow();
                 row.setStudentId(rs.getInt("studentId"));
+
                 String first = rs.getString("firstName");
-                String last = rs.getString("lastName");
+                String last  = rs.getString("lastName");
                 row.setFullName(first + " " + last);
+
                 row.setCourseCode(rs.getString("courseCode"));
                 row.setAssignmentTitle(rs.getString("title"));
                 row.setMaxMarks(rs.getInt("maxMarks"));
+
                 int mark = rs.getInt("mark");
                 if (rs.wasNull()) {
                     row.setMark(null);
                 } else {
-                    row.setMark(mark);
+                    row.setMark(Integer.valueOf(mark));
                 }
+
                 double pct = rs.getDouble("pct");
                 if (rs.wasNull()) {
                     row.setPercentage(null);
                 } else {
-                    row.setPercentage(pct);
+                    row.setPercentage(Double.valueOf(pct));
                 }
+
                 list.add(row);
             }
         }
         return list;
     }
 
-    /** Builds merge data for a student's report card. */
+    /**
+     * Build merge fields for one student's DOCX report card.
+     * Uses the same math as the grades table so results match.
+     */
     public Map<String, String> buildReportCardData(Student s) throws Exception {
-        CourseDAO courseDAO = new UcanaccessCourseDAO();
+        CourseDAO courseDAO       = new UcanaccessCourseDAO();
         AssignmentDAO assignmentDAO = new UcanaccessAssignmentDAO();
-        GradeDAO gradeDAO = new UcanaccessGradeDAO();
-        FeedbackDAO feedbackDAO = new UcanaccessFeedbackDAO();
+        GradeDAO gradeDAO         = new UcanaccessGradeDAO();
+        FeedbackDAO feedbackDAO   = new UcanaccessFeedbackDAO();
 
-        Map<String, String> data = new HashMap<>();
+        Map<String, String> data = new HashMap<String, String>();
         data.put("First_Name", s.getFirstName());
-        data.put("Last_Name", s.getLastName());
-        data.put("Grade", String.valueOf(s.getGradeLevel()));
+        data.put("Last_Name",  s.getLastName());
+        data.put("Grade",      String.valueOf(s.getGradeLevel()));
+
         LocalDate now = LocalDate.now();
         data.put("Year", String.valueOf(now.getYear()));
         data.put("Date", now.toString());
 
         List<Course> courses = courseDAO.findByGrade(s.getGradeLevel());
 
+        // Subjects expected in the template (keeps placeholders from showing)
         String[] names = {
-            "English", "Afrikaans", "Mathematics", "Physics",
-            "Business Studies", "Information Technology", "French", "Music"
+                "English", "Afrikaans", "Mathematics", "Physics",
+                "Business Studies", "Information Technology", "French", "Music"
         };
-        Map<String, String> normalised = new HashMap<>();
+        Map<String, String> normalised = new HashMap<String, String>();
         for (int i = 0; i < names.length; i++) {
             String name = names[i];
             String base = name.replace(' ', '_');
@@ -139,8 +156,11 @@ public class ReportService {
         int studentId = s.getStudentId();
         StringBuilder feedback = new StringBuilder();
 
+        // Go through the student’s courses and fill term/final values
         for (int i = 0; i < courses.size(); i++) {
             Course c = courses.get(i);
+
+            // Match the course to a known placeholder name
             String name = normalised.get(normalize(c.getCourseName()));
             if (name == null) {
                 String normCourse = normalize(c.getCourseName());
@@ -152,16 +172,21 @@ public class ReportService {
                 }
             }
             if (name == null) {
-                continue;
+                continue; // no matching placeholder in the template
             }
-            String base = name.replace(' ', '_');
-            List<Assignment> assigns = assignmentDAO.findByCourse(c.getCourseId());
-            Map<Integer, Map<Integer, Integer>> gradesByStudent = gradeDAO.findByCourse(c.getCourseId());
 
-            // Use StudentGradesTableModel helpers for consistent term and final calculations
+            String base = name.replace(' ', '_');
+
+            // Read assignments and marks for this course
+            List<Assignment> assigns = assignmentDAO.findByCourse(c.getCourseId());
+            Map<Integer, Map<Integer, Integer>> gradesByStudent =
+                    gradeDAO.findByCourse(c.getCourseId());
+
+            // Reuse the table model to calculate term averages as percentages
             List<Student> only = new ArrayList<Student>();
             only.add(s);
-            StudentGradesTableModel model = new StudentGradesTableModel(only, assigns, gradesByStudent);
+            StudentGradesTableModel model =
+                    new StudentGradesTableModel(only, assigns, gradesByStudent);
 
             Double[] termAvg = new Double[4];
             for (int t = 1; t <= 4; t++) {
@@ -173,17 +198,21 @@ public class ReportService {
                 }
             }
 
-            Double finalAvg = GradeCalculator.calculateFinalGrade(termAvg[0], termAvg[1], termAvg[2], termAvg[3]);
+            // Final = weighted by term (12.5, 25, 12.5, 50)
+            Double finalAvg = GradeCalculator.calculateFinalGrade(
+                    termAvg[0], termAvg[1], termAvg[2], termAvg[3]);
             if (finalAvg != null) {
-                int rounded = (int) Math.round(finalAvg);
+                int rounded = (int) Math.round(finalAvg.doubleValue());
                 data.put(base + "_Final", String.valueOf(rounded));
                 data.put(base + "_Grade", String.valueOf(Grades.symbolFor(rounded)));
             }
+
+            // Feedback note for this course (optional)
             Map<Integer, String> fb = feedbackDAO.findByCourse(c.getCourseId());
             String note = fb.get(studentId);
             if (note != null) {
                 note = note.trim();
-                if (!note.isEmpty()) {
+                if (note.length() > 0) {
                     if (feedback.length() > 0) {
                         feedback.append('\n');
                     }
@@ -192,9 +221,12 @@ public class ReportService {
                 }
             }
         }
+
         data.put("Feedback", feedback.toString().trim());
         return data;
     }
+
+    // --- small helpers ---
 
     private static String normalize(String s) {
         return s.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]", "");

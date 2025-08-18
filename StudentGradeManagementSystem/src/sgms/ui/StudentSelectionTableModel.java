@@ -7,30 +7,29 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import sgms.dao.StudentDAO;
 
 /**
- * Table model that displays all students with a selectable checkbox column.
+ * Table model with a select checkbox for each student.
+ * Columns: Select | ID | First Name | Last Name | Grade
  */
 public class StudentSelectionTableModel extends AbstractTableModel {
 
-    private final String[] columns = {"Select", "ID", "First Name", "Last Name", "Grade"};
+    private static final String[] COLUMNS = { "Select", "ID", "First Name", "Last Name", "Grade" };
+
     private final List<Student> students;
-    private final Set<Integer> selectedIds;
-    private final Set<Integer> originalIds;
+    private final Set<Integer> selectedIds; // current selection
+    private final Set<Integer> originalIds; // snapshot from construction
 
     public StudentSelectionTableModel(List<Student> students, Set<Integer> initiallySelected) {
-        this.students = new ArrayList<>(students);
-        this.selectedIds = new HashSet<>(initiallySelected);
-        this.originalIds = new HashSet<>(initiallySelected);
+        this.students     = new ArrayList<Student>(students);
+        this.selectedIds  = new HashSet<Integer>(initiallySelected);
+        this.originalIds  = new HashSet<Integer>(initiallySelected);
     }
 
-    /**
-     * Backward-compatible constructor accepting a DAO parameter that is
-     * ignored. Delegates to the primary constructor.
-     */
-    public StudentSelectionTableModel(List<Student> students, Set<Integer> initiallySelected,
-                                      StudentDAO studentDAO) {
+    // Backwards-compatible constructor (DAO not used here)
+    public StudentSelectionTableModel(List<Student> students,
+                                      Set<Integer> initiallySelected,
+                                      sgms.dao.StudentDAO ignored) {
         this(students, initiallySelected);
     }
 
@@ -41,88 +40,78 @@ public class StudentSelectionTableModel extends AbstractTableModel {
 
     @Override
     public int getColumnCount() {
-        return columns.length;
+        return COLUMNS.length;
     }
 
     @Override
     public String getColumnName(int column) {
-        return columns[column];
+        return COLUMNS[column];
     }
 
     @Override
     public Class<?> getColumnClass(int columnIndex) {
         switch (columnIndex) {
-            case 0:
-                return Boolean.class;
-            case 1:
-            case 4:
-                return Integer.class;
-            case 2:
-            case 3:
-                return String.class;
-            default:
-                return Object.class;
+            case 0: return Boolean.class; // Select
+            case 1: return Integer.class; // ID
+            case 4: return Integer.class; // Grade
+            case 2: // First Name
+            case 3: // Last Name
+            default: return String.class;
         }
     }
 
     @Override
     public boolean isCellEditable(int rowIndex, int columnIndex) {
-        return columnIndex == 0;
+        return columnIndex == 0; // only the checkbox is editable
     }
 
     @Override
     public Object getValueAt(int rowIndex, int columnIndex) {
         Student s = students.get(rowIndex);
         switch (columnIndex) {
-            case 0:
-                return selectedIds.contains(s.getStudentId());
-            case 1:
-                return s.getStudentId();
-            case 2:
-                return s.getFirstName();
-            case 3:
-                return s.getLastName();
-            case 4:
-                return s.getGradeLevel();
-            default:
-                return null;
+            case 0: return Boolean.valueOf(selectedIds.contains(Integer.valueOf(s.getStudentId())));
+            case 1: return Integer.valueOf(s.getStudentId());
+            case 2: return s.getFirstName();
+            case 3: return s.getLastName();
+            case 4: return Integer.valueOf(s.getGradeLevel());
+            default: return null;
         }
     }
 
     @Override
     public void setValueAt(Object aValue, int rowIndex, int columnIndex) {
-        if (columnIndex == 0) {
-            Student s = students.get(rowIndex);
-            boolean val = Boolean.TRUE.equals(aValue);
-            if (val) {
-                selectedIds.add(s.getStudentId());
-            } else {
-                selectedIds.remove(s.getStudentId());
-            }
-            fireTableRowsUpdated(rowIndex, rowIndex);
+        if (columnIndex != 0) return;
+        Student s = students.get(rowIndex);
+        Integer id = Integer.valueOf(s.getStudentId());
+        if (Boolean.TRUE.equals(aValue)) {
+            selectedIds.add(id);
+        } else {
+            selectedIds.remove(id);
         }
+        fireTableRowsUpdated(rowIndex, rowIndex);
     }
 
+    /** Current selection as student IDs. */
     public Set<Integer> getSelectedStudentIds() {
-        return new HashSet<>(selectedIds);
+        return new HashSet<Integer>(selectedIds);
     }
 
-    /** Returns the set of student IDs that were selected when the model was created. */
+    /** The selection as it was when the model was created. */
     public Set<Integer> getOriginallySelectedIds() {
-        return new HashSet<>(originalIds);
+        return new HashSet<Integer>(originalIds);
     }
 
-    /** Returns true if the student at the given row was not originally selected. */
+    /** True if this row is a new selection that wasn’t in the original set. */
     public boolean isNewlySelected(int rowIndex) {
         Student s = students.get(rowIndex);
-        int id = s.getStudentId();
+        Integer id = Integer.valueOf(s.getStudentId());
         return selectedIds.contains(id) && !originalIds.contains(id);
     }
 
-    /** Returns true if the student at the given row was deselected from the original set. */
+    /** True if this row was in the original set but is now deselected. */
     public boolean isDeselected(int rowIndex) {
         Student s = students.get(rowIndex);
-        int id = s.getStudentId();
+        Integer id = Integer.valueOf(s.getStudentId());
         return !selectedIds.contains(id) && originalIds.contains(id);
     }
 }

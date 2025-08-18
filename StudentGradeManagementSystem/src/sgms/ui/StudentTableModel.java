@@ -1,36 +1,29 @@
 package sgms.ui;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.HashSet;
 import javax.swing.JOptionPane;
 import javax.swing.table.AbstractTableModel;
 import sgms.model.Student;
-import sgms.dao.StudentDAO;
 
 /**
- * Table model backing the JTable on the MainPage when viewing students.
- * It holds Student objects and exposes them as editable rows.
- * IEB-friendly: no streams or lambdas; clear, simple loops.
+ * Table model for the “View Students” screen.
+ * Columns: Delete | ID | First Name | Last Name | Grade
  */
 public class StudentTableModel extends AbstractTableModel {
 
-    private final String[] columns = {"Delete", "ID", "First Name", "Last Name", "Grade"};
+    private final String[] columns = { "Delete", "ID", "First Name", "Last Name", "Grade" };
     private final List<Student> students;
     private final Set<Integer> deletedIds = new HashSet<Integer>();
 
     public StudentTableModel(List<Student> list) {
-        // Defensive copy
-        if (list == null) {
-            this.students = new ArrayList<Student>();
-        } else {
-            this.students = new ArrayList<Student>(list);
-        }
+        this.students = (list == null) ? new ArrayList<Student>() : new ArrayList<Student>(list);
     }
 
-    /** Backward-compatible constructor (DAO is not used by the model). */
-    public StudentTableModel(List<Student> list, StudentDAO studentDAO) {
+    /** Older signature kept for compatibility (DAO not used here). */
+    public StudentTableModel(List<Student> list, sgms.dao.StudentDAO ignored) {
         this(list);
     }
 
@@ -49,146 +42,136 @@ public class StudentTableModel extends AbstractTableModel {
         return columns[column];
     }
 
-    /** Make Grade and ID numeric so sorting and grouping work correctly. */
+    /** ID and Grade as Integer so sorting works as numbers. */
     @Override
     public Class<?> getColumnClass(int columnIndex) {
         switch (columnIndex) {
-            case 0:
-                return Boolean.class; // Delete checkbox
-            case 1:
-                return Integer.class; // ID
-            case 2:
-                return String.class; // First Name
-            case 3:
-                return String.class; // Last Name
-            case 4:
-                return Integer.class; // Grade
-            default:
-                return Object.class;
+            case 0: return Boolean.class; // Delete
+            case 1: return Integer.class; // ID
+            case 2: return String.class;  // First Name
+            case 3: return String.class;  // Last Name
+            case 4: return Integer.class; // Grade
+            default: return Object.class;
         }
+    }
+
+    @Override
+    public boolean isCellEditable(int rowIndex, int columnIndex) {
+        // Delete + First/Last/Grade are editable; ID is read-only
+        return columnIndex == 0 || columnIndex > 1;
     }
 
     @Override
     public Object getValueAt(int rowIndex, int columnIndex) {
         Student s = students.get(rowIndex);
         switch (columnIndex) {
-            case 0:
-                return deletedIds.contains(Integer.valueOf(s.getStudentId()));
-            case 1:
-                return s.getStudentId();
-            case 2:
-                return s.getFirstName();
-            case 3:
-                return s.getLastName();
-            case 4:
-                return s.getGradeLevel();
-            default:
-                return null;
+            case 0: return deletedIds.contains(Integer.valueOf(s.getStudentId()));
+            case 1: return Integer.valueOf(s.getStudentId());
+            case 2: return s.getFirstName();
+            case 3: return s.getLastName();
+            case 4: return Integer.valueOf(s.getGradeLevel());
+            default: return null;
         }
-    }
-
-    @Override
-    public boolean isCellEditable(int rowIndex, int columnIndex) {
-        return columnIndex == 0 || columnIndex > 1; // Delete column and name/grade editable, ID read-only
     }
 
     @Override
     public void setValueAt(Object aValue, int rowIndex, int columnIndex) {
         Student s = students.get(rowIndex);
-        switch (columnIndex) {
-            case 0: {
-                int id = s.getStudentId();
-                if (Boolean.TRUE.equals(aValue)) {
-                    deletedIds.add(Integer.valueOf(id));
-                } else {
-                    deletedIds.remove(Integer.valueOf(id));
-                }
-                fireTableRowsUpdated(rowIndex, rowIndex);
-                return;
+
+        if (columnIndex == 0) {
+            Integer id = Integer.valueOf(s.getStudentId());
+            if (Boolean.TRUE.equals(aValue)) {
+                deletedIds.add(id);
+            } else {
+                deletedIds.remove(id);
             }
-            case 2: {
-                String val = String.valueOf(aValue).trim();
-                if (val.isEmpty()) {
-                    JOptionPane.showMessageDialog(null, "First name cannot be blank.");
-                } else {
-                    s.setFirstName(val);
-                }
-                break;
-            }
-            case 3: {
-                String val = String.valueOf(aValue).trim();
-                if (val.isEmpty()) {
-                    JOptionPane.showMessageDialog(null, "Last name cannot be blank.");
-                } else {
-                    s.setLastName(val);
-                }
-                break;
-            }
-            case 4: {
-                try {
-                    int grade = Integer.parseInt(String.valueOf(aValue).trim());
-                    if (grade <= 0) {
-                        JOptionPane.showMessageDialog(null, "Grade must be a positive number.");
-                    } else {
-                        s.setGradeLevel(grade);
-                    }
-                } catch (NumberFormatException e) {
-                    JOptionPane.showMessageDialog(null, "Grade must be a number.");
-                }
-                break;
-            }
-            default:
-                break;
+            fireTableRowsUpdated(rowIndex, rowIndex);
+            return;
         }
+
+        if (columnIndex == 2) {
+            String val = String.valueOf(aValue).trim();
+            if (val.isEmpty()) {
+                javax.swing.JOptionPane.showMessageDialog(null, "First name cannot be blank.");
+            } else {
+                s.setFirstName(val);
+            }
+        } else if (columnIndex == 3) {
+            String val = String.valueOf(aValue).trim();
+            if (val.isEmpty()) {
+                javax.swing.JOptionPane.showMessageDialog(null, "Last name cannot be blank.");
+            } else {
+                s.setLastName(val);
+            }
+        } else if (columnIndex == 4) {
+            try {
+                int grade = Integer.parseInt(String.valueOf(aValue).trim());
+                if (grade <= 0) {
+                    JOptionPane.showMessageDialog(null, "Grade must be a positive number.");
+                } else {
+                    s.setGradeLevel(grade);
+                }
+            } catch (NumberFormatException e) {
+                JOptionPane.showMessageDialog(null, "Grade must be a number.");
+            }
+        }
+
         fireTableCellUpdated(rowIndex, columnIndex);
     }
 
+    /** Get the student object for a row. */
     public Student getStudent(int row) {
         return students.get(row);
     }
 
+    /** Current list used by the table. */
     public List<Student> getStudents() {
         return students;
     }
 
+    /** Add a new row at the end. */
     public void addStudent(Student s) {
         students.add(s);
         int row = students.size() - 1;
         fireTableRowsInserted(row, row);
     }
 
+    /** Remove one row. */
     public void removeStudent(int row) {
         students.remove(row);
         fireTableRowsDeleted(row, row);
     }
 
+    /** Toggle the delete checkbox for a row. */
     public void markDeleted(int row) {
         Student s = students.get(row);
-        int id = s.getStudentId();
-        Integer key = Integer.valueOf(id);
-        if (deletedIds.contains(key)) {
-            deletedIds.remove(key);
+        Integer id = Integer.valueOf(s.getStudentId());
+        if (deletedIds.contains(id)) {
+            deletedIds.remove(id);
         } else {
-            deletedIds.add(key);
+            deletedIds.add(id);
         }
         fireTableRowsUpdated(row, row);
     }
 
+    /** True if that row is marked to delete. */
     public boolean isMarkedForDeletion(int row) {
         Student s = students.get(row);
         return deletedIds.contains(Integer.valueOf(s.getStudentId()));
     }
 
+    /** Copy of all IDs marked to delete. */
     public Set<Integer> getDeletedIds() {
         return new HashSet<Integer>(deletedIds);
     }
 
+    /** Clear delete marks and refresh. */
     public void clearDeleted() {
         deletedIds.clear();
         fireTableDataChanged();
     }
 
-    /** Replace all rows and notify listeners. */
+    /** Replace all rows and refresh. */
     public void setRows(List<Student> newRows) {
         students.clear();
         if (newRows != null) {
@@ -197,6 +180,7 @@ public class StudentTableModel extends AbstractTableModel {
         fireTableDataChanged();
     }
 
+    /** Older name kept for callers that still use it. */
     public void setStudents(List<Student> list) {
         setRows(list);
     }

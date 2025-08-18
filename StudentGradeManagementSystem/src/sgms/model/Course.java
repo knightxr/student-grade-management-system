@@ -1,27 +1,29 @@
 package sgms.model;
 
 /**
- * Simple POJO representing a course.
+ * One course at school.
+ * Keeps the code, name, grade level, and (optionally) how many students are in it.
  */
 public class Course {
 
-    private int    courseId;
-    private String courseCode;
-    private String courseName;
-    private int    gradeLevel;
-    private int    studentCount;
+    private int courseId;        // 0 means not saved yet
+    private String courseCode;   // e.g. IT12
+    private String courseName;   // e.g. Information Technology
+    private int gradeLevel;      // e.g. 12
+    private int studentCount;    // used for display; can be 0
 
-    public Course() {}
+    /** Empty constructor for tools or manual setup. */
+    public Course() { }
 
     /**
-     * Convenience constructor used in existing parts of the UI that only need
-     * an ID and name, e.g. the course filter combo box.
+     * Quick constructor used by UI lists that only need an ID and a name.
      */
     public Course(int courseId, String courseName) {
         this.courseId = courseId;
         this.courseName = courseName;
     }
 
+    /** Main constructor without student count. */
     public Course(int courseId, String courseCode, String courseName, int gradeLevel) {
         this.courseId = courseId;
         this.courseCode = courseCode;
@@ -29,10 +31,13 @@ public class Course {
         this.gradeLevel = gradeLevel;
     }
 
+    /** Constructor that also includes the student count (for display). */
     public Course(int courseId, String courseCode, String courseName, int gradeLevel, int studentCount) {
         this(courseId, courseCode, courseName, gradeLevel);
         this.studentCount = studentCount;
     }
+
+    // --- getters and setters ---
 
     public int getCourseId() {
         return courseId;
@@ -74,6 +79,7 @@ public class Course {
         this.studentCount = studentCount;
     }
 
+    /** Useful when showing a course in a combo box. */
     @Override
     public String toString() {
         return courseName;

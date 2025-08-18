@@ -3,20 +3,22 @@ package sgms.model;
 import java.sql.Date;
 
 /**
- * Represents an assignment or test for a course.
+ * One assignment or test for a course.
+ * Stores the title, max marks (can be null), term (1..4), and due date (can be null).
  */
 public class Assignment {
 
     private int assignmentId;
     private int courseId;
     private String title;
-    private Integer maxMarks;
-    private int term;
-    private Date dueDate;
+    private Integer maxMarks; // null means "not set"
+    private int term;         // 1-4
+    private Date dueDate;     // may be null
 
-    public Assignment() {
-    }
+    /** Empty constructor for frameworks/tools. */
+    public Assignment() { }
 
+    /** Full constructor with all fields. */
     public Assignment(int assignmentId, int courseId, String title,
                       Integer maxMarks, int term, Date dueDate) {
         this.assignmentId = assignmentId;
@@ -27,9 +29,12 @@ public class Assignment {
         this.dueDate = dueDate;
     }
 
+    /** Simple constructor when only course, title, and term are known. */
     public Assignment(int courseId, String title, int term) {
         this(0, courseId, title, null, term, null);
     }
+
+    // --- getters and setters ---
 
     public int getAssignmentId() {
         return assignmentId;

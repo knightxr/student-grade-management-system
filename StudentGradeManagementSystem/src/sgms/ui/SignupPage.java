@@ -246,42 +246,108 @@ public class SignupPage extends javax.swing.JFrame {
      * Handles the action when the 'Create Account' button is clicked.
      */
     private void btnCreateAccountActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnCreateAccountActionPerformed
-        String name = jTextFieldName.getText().trim();
-        String username = jTextFieldUsername.getText().trim().toLowerCase(); // Convert to lowercase
-        String userPassword = new String(jPasswordFieldUserPassword.getPassword()).trim();
-        String adminPassword = new String(jPasswordFieldAdministratorPassword.getPassword()).trim();
+        // Read inputs
+    String name = jTextFieldName.getText().trim();
+    String username = jTextFieldUsername.getText().trim().toLowerCase();
 
-        if (name.isEmpty() || username.isEmpty() || userPassword.isEmpty() || adminPassword.isEmpty()) {
-            jLabelErrorText.setText("Please fill in all fields.");
-            return;
-        }
-        if (!username.matches("[A-Za-z0-9_]{4,20}") || userPassword.length() < 6) {
-            jLabelErrorText.setText("Invalid username or password format.");
-            return;
-        }
+    char[] userPwChars  = jPasswordFieldUserPassword.getPassword();
+    char[] adminPwChars = jPasswordFieldAdministratorPassword.getPassword();
+    String userPassword  = new String(userPwChars);
+    String adminPassword = new String(adminPwChars);
 
-        if (!authService.isAdminPassword(adminPassword)) {
-            jLabelErrorText.setText("Incorrect administrator password.");
-            return;
-        }
+    // Reset any old error
+    jLabelErrorText.setText("");
 
-        if (authService.isUsernameExists(username)) {
-            jLabelErrorText.setText("Username already exists. Please choose another.");
-            return;
-        }
+    // Basic presence checks
+    if (name.isEmpty()) {
+        jLabelErrorText.setText("Please enter your full name.");
+        jTextFieldName.requestFocus();
+        java.util.Arrays.fill(userPwChars, '\0');
+        java.util.Arrays.fill(adminPwChars, '\0');
+        return;
+    }
+    if (username.isEmpty()) {
+        jLabelErrorText.setText("Please choose a username.");
+        jTextFieldUsername.requestFocus();
+        java.util.Arrays.fill(userPwChars, '\0');
+        java.util.Arrays.fill(adminPwChars, '\0');
+        return;
+    }
+    if (userPassword.isEmpty() || adminPassword.isEmpty()) {
+        jLabelErrorText.setText("Please enter both passwords.");
+        if (userPassword.isEmpty()) jPasswordFieldUserPassword.requestFocus();
+        else jPasswordFieldAdministratorPassword.requestFocus();
+        java.util.Arrays.fill(userPwChars, '\0');
+        java.util.Arrays.fill(adminPwChars, '\0');
+        return;
+    }
 
-        if (authService.signup(name, username, userPassword)) {
-            JOptionPane.showMessageDialog(null,
-                    "Account successfully created. You can now use it to log in.",
-                    "Success",
-                    JOptionPane.INFORMATION_MESSAGE);
+    // Format validation (simple and explicit)
+    if (!sgms.service.ValidationService.isName(name)) {
+        jLabelErrorText.setText("Name may only contain letters, spaces, or hyphens.");
+        jTextFieldName.requestFocus();
+        java.util.Arrays.fill(userPwChars, '\0');
+        java.util.Arrays.fill(adminPwChars, '\0');
+        return;
+    }
+    if (!sgms.service.ValidationService.isUsername(username)) {
+        jLabelErrorText.setText("Username must be 3–20 characters (letters, digits, underscore).");
+        jTextFieldUsername.requestFocus();
+        java.util.Arrays.fill(userPwChars, '\0');
+        java.util.Arrays.fill(adminPwChars, '\0');
+        return;
+    }
+    if (!sgms.service.ValidationService.isStrongPassword(userPassword)) {
+        jLabelErrorText.setText("Password must be at least 8 characters and include a letter and a digit.");
+        jPasswordFieldUserPassword.requestFocus();
+        java.util.Arrays.fill(userPwChars, '\0');
+        java.util.Arrays.fill(adminPwChars, '\0');
+        return;
+    }
 
-            LoginPage loginPage = new LoginPage();
-            loginPage.setVisible(true);
-            dispose();
-        } else {
-            jLabelErrorText.setText("Error occurred. Could not create the account.");
-        }
+    // Admin password check
+    if (!authService.isAdminPassword(adminPassword)) {
+        jLabelErrorText.setText("Incorrect administrator password.");
+        jPasswordFieldAdministratorPassword.setText("");
+        jPasswordFieldAdministratorPassword.requestFocus();
+        java.util.Arrays.fill(userPwChars, '\0');
+        java.util.Arrays.fill(adminPwChars, '\0');
+        return;
+    }
+
+    // Username availability
+    if (authService.isUsernameExists(username)) {
+        jLabelErrorText.setText("Username already exists. Please choose another.");
+        jTextFieldUsername.requestFocus();
+        java.util.Arrays.fill(userPwChars, '\0');
+        java.util.Arrays.fill(adminPwChars, '\0');
+        return;
+    }
+
+    // Create account
+    boolean ok = authService.signup(name, username, userPassword);
+
+    // Clear password chars from memory
+    java.util.Arrays.fill(userPwChars, '\0');
+    java.util.Arrays.fill(adminPwChars, '\0');
+
+    if (ok) {
+        javax.swing.JOptionPane.showMessageDialog(
+            this,
+            "Account created. You can now sign in.",
+            "Success",
+            javax.swing.JOptionPane.INFORMATION_MESSAGE
+        );
+        LoginPage loginPage = new LoginPage();
+        loginPage.setLocationRelativeTo(null);
+        loginPage.setVisible(true);
+        dispose();
+    } else {
+        jLabelErrorText.setText("Could not create the account.");
+        jPasswordFieldUserPassword.setText("");
+        jPasswordFieldAdministratorPassword.setText("");
+        jPasswordFieldUserPassword.requestFocus();
+    }
 
     }//GEN-LAST:event_btnCreateAccountActionPerformed
 

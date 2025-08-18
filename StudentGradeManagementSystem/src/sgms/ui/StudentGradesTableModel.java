@@ -2,8 +2,8 @@ package sgms.ui;
 
 import sgms.model.Assignment;
 import sgms.model.Student;
-import sgms.dao.GradeDAO;                 // back-compat ctor only
-import sgms.service.ValidationService;  // used for simple range checks
+import sgms.dao.GradeDAO;                 // kept for older code paths
+import sgms.service.ValidationService;
 
 import javax.swing.JOptionPane;
 import javax.swing.table.AbstractTableModel;
@@ -13,34 +13,31 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Table model showing students and their grades for each assignment.
- * - Column 0: "Student" (First Last)
- * - Columns 1..N: RAW marks per assignment (editable)
- *
- * Public helpers (used by FinalGradesTableModel):
- *   - getTermAveragePercent(studentId, term)
- *   - getFinalPercent(studentId)   // uses GradeCalculator (weighted)
- *
- * IEB-aligned: simple loops, no streams/lambdas.
+ * Shows students and their RAW marks for each assignment.
+ * Col 0 = Student name, Col 1-N = marks (editable).
+ * Also exposes helpers to get term and final percentages.
  */
 public class StudentGradesTableModel extends AbstractTableModel {
 
     private final List<Student> students;
     private final List<Assignment> assignments;
-    // studentId maps to (assignmentId maps to RAW mark)
+    // studentId -> (assignmentId -> RAW mark)
     private final Map<Integer, Map<Integer, Integer>> grades;
 
     public StudentGradesTableModel(List<Student> students,
                                    List<Assignment> assignments,
                                    Map<Integer, Map<Integer, Integer>> grades) {
-        this.students = (students == null) ? new ArrayList<Student>()
-                                           : new ArrayList<Student>(students);
-        this.assignments = (assignments == null) ? new ArrayList<Assignment>()
-                                                 : new ArrayList<Assignment>(assignments);
+        this.students = (students == null)
+                ? new ArrayList<Student>()
+                : new ArrayList<Student>(students);
+
+        this.assignments = (assignments == null)
+                ? new ArrayList<Assignment>()
+                : new ArrayList<Assignment>(assignments);
+
         this.grades = new HashMap<Integer, Map<Integer, Integer>>();
         if (students != null && grades != null) {
-            int i;
-            for (i = 0; i < students.size(); i++) {
+            for (int i = 0; i < students.size(); i++) {
                 Student s = students.get(i);
                 Map<Integer, Integer> m = grades.get(s.getStudentId());
                 if (m == null) m = new HashMap<Integer, Integer>();
@@ -49,11 +46,11 @@ public class StudentGradesTableModel extends AbstractTableModel {
         }
     }
 
-    /** Backward-compatible constructor; DAO is ignored by the model. */
+    /** Older constructor signature; DAO is not used here. */
     public StudentGradesTableModel(List<Student> students,
                                    List<Assignment> assignments,
                                    Map<Integer, Map<Integer, Integer>> grades,
-                                   GradeDAO gradeDAO) {
+                                   GradeDAO ignored) {
         this(students, assignments, grades);
     }
 
@@ -64,7 +61,7 @@ public class StudentGradesTableModel extends AbstractTableModel {
 
     @Override
     public int getColumnCount() {
-        // "Student" + all assignment columns
+        // "Student" + one column per assignment
         return 1 + assignments.size();
     }
 
@@ -80,20 +77,20 @@ public class StudentGradesTableModel extends AbstractTableModel {
     public Object getValueAt(int rowIndex, int columnIndex) {
         Student s = students.get(rowIndex);
         if (columnIndex == 0) {
-            String first = s.getFirstName() == null ? "" : s.getFirstName();
-            String last  = s.getLastName()  == null ? "" : s.getLastName();
-            String space = (first.length() > 0 && last.length() > 0) ? " " : "";
-            return first + space + last;
+            String first = (s.getFirstName() == null) ? "" : s.getFirstName();
+            String last  = (s.getLastName()  == null) ? "" : s.getLastName();
+            return (first.length() > 0 && last.length() > 0) ? (first + " " + last) : (first + last);
         }
         int assignmentId = assignments.get(columnIndex - 1).getAssignmentId();
-        Map<Integer, Integer> studentGrades = grades.get(s.getStudentId());
-        if (studentGrades == null) return null;
-        return studentGrades.get(assignmentId); // RAW mark (may be null)
+        Map<Integer, Integer> m = grades.get(s.getStudentId());
+        if (m == null) return null;
+        return m.get(assignmentId); // raw mark or null
     }
 
     @Override
     public boolean isCellEditable(int rowIndex, int columnIndex) {
-        return columnIndex > 0; // assignments editable; name not editable
+        // only assignment marks are editable
+        return columnIndex > 0;
     }
 
     @Override
@@ -104,7 +101,7 @@ public class StudentGradesTableModel extends AbstractTableModel {
         Assignment a = assignments.get(columnIndex - 1);
         int assignmentId = a.getAssignmentId();
 
-        // allow clearing a mark by leaving blank
+        // allow clearing a mark by leaving the cell blank
         if (aValue == null || String.valueOf(aValue).trim().length() == 0) {
             Map<Integer, Integer> m = grades.get(s.getStudentId());
             if (m != null) {
@@ -133,11 +130,11 @@ public class StudentGradesTableModel extends AbstractTableModel {
             fireTableCellUpdated(rowIndex, columnIndex);
 
         } catch (NumberFormatException ex) {
-            JOptionPane.showMessageDialog(null, "Grade must be a number between 0 and 100.");
+            JOptionPane.showMessageDialog(null, "Grade must be a whole number.");
         }
     }
 
-    // ------------ Existing utilities ------------
+    // ---- basic helpers ----
 
     public Assignment getAssignmentAt(int index) {
         return assignments.get(index);
@@ -150,32 +147,30 @@ public class StudentGradesTableModel extends AbstractTableModel {
 
     public void removeAssignment(int index) {
         Assignment a = assignments.remove(index);
-        // Remove any stored marks for this assignment
-        java.util.Iterator<Map.Entry<Integer, Map<Integer, Integer>>> it = grades.entrySet().iterator();
-        while (it.hasNext()) {
-            Map.Entry<Integer, Map<Integer, Integer>> e = it.next();
+        // remove stored marks for that assignment
+        for (Map.Entry<Integer, Map<Integer, Integer>> e : grades.entrySet()) {
             Map<Integer, Integer> m = e.getValue();
             if (m != null) m.remove(a.getAssignmentId());
         }
         fireTableStructureChanged();
     }
 
-    /** Original getter used by save handler. */
+    /** Used by the save action. */
     public Map<Integer, Map<Integer, Integer>> getGrades() {
         return grades;
     }
 
-    /** Back-compat alias (so existing calls to getGradesByStudent() compile). */
+    /** Older name kept so existing calls still compile. */
     public Map<Integer, Map<Integer, Integer>> getGradesByStudent() {
         return grades;
     }
 
-    // ------------ Helpers for Final grades view ------------
+    // ---- percentage helpers for “Final Grades” view ----
 
     /**
-     * Returns the average of assignment PERCENTs (0..100) for the given student and term,
-     * or null if the student has no marks in that term.
+     * Average of assignment percentages in a term for one student.
      * percent = (raw / maxMarks) * 100
+     * Returns null if there are no marks in that term.
      */
     public Double getTermAveragePercent(int studentId, int term) {
         Map<Integer, Integer> m = grades.get(studentId);
@@ -184,8 +179,7 @@ public class StudentGradesTableModel extends AbstractTableModel {
         double sumPct = 0.0;
         int count = 0;
 
-        int i;
-        for (i = 0; i < assignments.size(); i++) {
+        for (int i = 0; i < assignments.size(); i++) {
             Assignment a = assignments.get(i);
             if (a.getTerm() == term) {
                 Integer raw = m.get(a.getAssignmentId());
@@ -203,8 +197,8 @@ public class StudentGradesTableModel extends AbstractTableModel {
     }
 
     /**
-     * Returns the weighted FINAL percent using GradeCalculator with term percents.
-     * Missing terms are ignored and weights are re-normalised in GradeCalculator.
+     * Weighted final percent using the term values.
+     * (Weights are handled in GradeCalculator.)
      */
     public Double getFinalPercent(int studentId) {
         Double t1 = getTermAveragePercent(studentId, 1);

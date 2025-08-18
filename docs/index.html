@@ -5,33 +5,73 @@
     <title>SGMS Browser Demo</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <script src="https://cjrtnc.leaningtech.com/4.2/loader.js"></script>
-    <style>html,body{height:100%;margin:0}</style>
+    <style>html,body{height:100%;margin:0;background:#111;color:#eee;font:14px system-ui}</style>
   </head>
   <body>
+    <div id="log" style="position:fixed;top:10px;left:10px;background:#222;padding:10px;border-radius:8px;z-index:9"></div>
     <script>
+      const log = (m)=>document.getElementById('log').insertAdjacentHTML('beforeend', `<div>${m}</div>`);
+
       (async function () {
-        await cheerpjInit();
-        cheerpjCreateDisplay(1024, 700);
+        try {
+          log("Loading CheerpJ…");
+          await cheerpjInit();
+          cheerpjCreateDisplay(1024, 700);
 
-        // Classpath: your app jar FIRST, then every jar from docs/lib (colon-separated)
-        const cp = [
-          "/app/StudentGradeManagementSystem.jar",
-          "/app/lib/AbsoluteLayout.jar",
-          "/app/lib/commons-lang3-3.8.1.jar",
-          "/app/lib/commons-logging-1.2.jar",
-          "/app/lib/flatlaf-3.6.jar",
-          "/app/lib/hsqldb-2.5.0.jar",
-          "/app/lib/jackcess-3.0.1.jar",
-          "/app/lib/ucanaccess-5.0.1.jar"
-        ].join(":");
+          // --- classpath: app jar first, then all libs ---
+          const cp = [
+            "/app/StudentGradeManagementSystem.jar",
+            "/app/lib/AbsoluteLayout.jar",
+            "/app/lib/commons-lang3-3.8.1.jar",
+            "/app/lib/commons-logging-1.2.jar",
+            "/app/lib/flatlaf-3.6.jar",
+            "/app/lib/hsqldb-2.5.0.jar",
+            "/app/lib/jackcess-3.0.1.jar",
+            "/app/lib/ucanaccess-5.0.1.jar"
+          ].join(":");
 
-        const mainClass = "sgms.main.StudentGradeManagementSystem";
+          // --- copy the embedded ACCDB out of the JAR into CheerpJ's writable FS ---
+          // It lives in the JAR as sgms/data/School.accdb
+          const ACCDB_IN_JAR = "sgms/data/School.accdb";
 
-        // If your app supports a demo flag that avoids the Access DB, keep "--demo".
-        // If not, remove it or add that mode in your Main.
-        await cheerpjRunMain(mainClass, cp, "--demo");
+          log("Preparing DB…");
+          const lib = await cheerpjRunLibrary(cp);
+          const System = lib.java.lang.System;
+          const ClassLoader = lib.java.lang.ClassLoader;
+          const Paths = lib.java.nio.file.Paths;
+          const Files = lib.java.nio.file.Files;
+          const StandardCopyOption = lib.java.nio.file.StandardCopyOption;
+
+          const inStream = await ClassLoader.getSystemResourceAsStream(ACCDB_IN_JAR);
+          if (inStream == null) throw new Error("ACCDB not found in JAR at: " + ACCDB_IN_JAR);
+
+          // write to a few common places so existing code finds it either way
+          const dests = [
+            "/files/sgms/data/School.accdb",  // matches your source tree layout
+            "/files/src/sgms/data/School.accdb", // if your code still uses a "src/…" relative path
+            "/files/School.accdb"                // absolute fallback
+          ];
+          for (const d of dests) {
+            const p = await Paths.get(d, []);
+            await Files.createDirectories(p.getParent());
+            await Files.copy(inStream, p, [StandardCopyOption.REPLACE_EXISTING]);
+            inStream.reset?.(); // reuse stream if supported
+          }
+
+          // make relative paths resolve under /files (so "sgms/data/School.accdb" works)
+          await System.setProperty("user.dir", "/files");
+
+          // --- launch your real main (no code changes) ---
+          log("Launching app…");
+          const mainClass = "sgms.main.StudentGradeManagementSystem";
+          await cheerpjRunMain(mainClass, cp);
+
+          log("App launched.");
+        } catch (e) {
+          log("<b>ERROR:</b> " + (e?.stack || e));
+          console.error(e);
+        }
       })();
     </script>
-    <noscript>Enable JavaScript to run the demo.</noscript>
   </body>
 </html>

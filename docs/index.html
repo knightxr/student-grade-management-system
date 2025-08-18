@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>SGMS Browser Demo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="https://cjrtnc.leaningtech.com/4.2/loader.js"></script>
+    <style>html,body{height:100%;margin:0}</style>
+  </head>
+  <body>
+    <script>
+      (async function () {
+        await cheerpjInit();
+        cheerpjCreateDisplay(1024, 700);
+
+        // Classpath: your app jar FIRST, then every jar from docs/lib (colon-separated)
+        const cp = [
+          "/app/StudentGradeManagementSystem.jar",
+          "/app/lib/AbsoluteLayout.jar",
+          "/app/lib/commons-lang3-3.8.1.jar",
+          "/app/lib/commons-logging-1.2.jar",
+          "/app/lib/flatlaf-3.6.jar",
+          "/app/lib/hsqldb-2.5.0.jar",
+          "/app/lib/jackcess-3.0.1.jar",
+          "/app/lib/ucanaccess-5.0.1.jar"
+        ].join(":");
+
+        const mainClass = "sgms.main.StudentGradeManagementSystem";
+
+        // If your app supports a demo flag that avoids the Access DB, keep "--demo".
+        // If not, remove it or add that mode in your Main.
+        await cheerpjRunMain(mainClass, cp, "--demo");
+      })();
+    </script>
+    <noscript>Enable JavaScript to run the demo.</noscript>
+  </body>
+</html>

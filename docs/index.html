@@ -17,40 +17,35 @@
     <div id="log">Starting…</div>
     <script>
       const log = (m, cls="") => {
-        const el = document.getElementById("log");
-        el.insertAdjacentHTML("beforeend", `<div class="${cls}">${m}</div>`);
+        document.getElementById("log").insertAdjacentHTML("beforeend", `<div class="${cls}">${m}</div>`);
       };
 
-      // ---- Exact filenames present in your repo (analyze from your screenshots) ----
+      // ---- Use RELATIVE paths (no leading slash) so it works under /student-grade-management-system/ ----
       const CP_LIST = [
-        "/app/StudentGradeManagementSystem.jar",
-        "/app/lib/AbsoluteLayout.jar",
-        "/app/lib/commons-lang3-3.8.1.jar",
-        "/app/lib/commons-logging-1.2.jar",
-        "/app/lib/flatlaf-3.6.jar",
-        "/app/lib/hsqldb-2.5.0.jar",
-        "/app/lib/jackcess-3.0.1.jar",
-        "/app/lib/ucanaccess-5.0.1.jar"
+        "StudentGradeManagementSystem.jar",
+        "lib/AbsoluteLayout.jar",
+        "lib/commons-lang3-3.8.1.jar",
+        "lib/commons-logging-1.2.jar",
+        "lib/flatlaf-3.6.jar",
+        "lib/hsqldb-2.5.0.jar",
+        "lib/jackcess-3.0.1.jar",
+        "lib/ucanaccess-5.0.1.jar"
       ];
       const CP = CP_LIST.join(":");
 
-      // Your DB file placed in docs/sgms/data/ (site) and where the app should read it (writable)
-      const DB_SITE   = "/app/sgms/data/School.accdb";
-      const DB_TARGET = "/files/src/sgms/data/School.accdb"; // matches Path.of("src","sgms","data","School.accdb")
+      // DB as shipped in docs/…
+      const DB_SITE   = "sgms/data/School.accdb";
+      // Where your Java code expects it after toAbsolutePath() with user.dir="/files"
+      const DB_TARGET = "/files/src/sgms/data/School.accdb";
 
-      // Main class (contains public static void main) per your project tree
       const MAIN_CLASS = "sgms.main.StudentGradeManagementSystem";
 
-      // ---- Small preflight: HEAD each resource so we fail fast if anything is missing on Pages ----
       async function preflight() {
-        const required = [...CP_LIST, DB_SITE.replace("/app","") ? DB_SITE : DB_SITE];
         let ok = true;
-        for (const p of required) {
-          // remove "/app" because fetch is relative to site root; '/app/foo' == 'FOO' on the network
-          const url = p.startsWith("/app/") ? p.slice(4) : p;
-          const res = await fetch(url + "?v=" + Date.now(), { method: "HEAD" });
-          if (!res.ok) { ok = false; log(`Missing on server: ${url} (status ${res.status})`, "bad"); }
-          else { log(`OK: ${url}`, "ok"); }
+        for (const p of [...CP_LIST, DB_SITE]) {
+          const res = await fetch(p + "?v=" + Date.now(), { method: "HEAD" });
+          if (!res.ok) { ok = false; log(`Missing on server: ${p} (status ${res.status})`, "bad"); }
+          else { log(`OK: ${p}`, "ok"); }
         }
         if (!ok) throw new Error("One or more files are missing on GitHub Pages. Fix the red lines above.");
       }
@@ -68,13 +63,11 @@
           log("Loading Java library (classpath)…");
           const lib = await cheerpjRunLibrary(CP);
 
-          // Java handles
           const System = lib.java.lang.System;
           const Paths = lib.java.nio.file.Paths;
           const Files = lib.java.nio.file.Files;
           const StandardCopyOption = lib.java.nio.file.StandardCopyOption;
 
-          // Copy DB from site (/app/…) to writable FS (/files/…)
           log("Preparing database…");
           const src = await Paths.get(DB_SITE, []);
           const dst = await Paths.get(DB_TARGET, []);
@@ -82,11 +75,9 @@
           await Files.copy(src, dst, [StandardCopyOption.REPLACE_EXISTING]);
           log("DB copied to " + DB_TARGET);
 
-          // Make your Path.of(...).toAbsolutePath() resolve under /files
           await System.setProperty("user.dir", "/files");
           log('user.dir set to "/files"');
 
-          // Launch your app
           log("Launching app main…");
           await cheerpjRunMain(MAIN_CLASS, CP);
           log("App launched.");

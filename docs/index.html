@@ -18,7 +18,7 @@
           await cheerpjInit();
           cheerpjCreateDisplay(1024, 700);
 
-          // --- classpath: app jar first, then all libs ---
+          // 1) Classpath: app jar first, then libs
           const cp = [
             "/app/StudentGradeManagementSystem.jar",
             "/app/lib/AbsoluteLayout.jar",
@@ -30,42 +30,29 @@
             "/app/lib/ucanaccess-5.0.1.jar"
           ].join(":");
 
-          // --- copy the embedded ACCDB out of the JAR into CheerpJ's writable FS ---
-          // It lives in the JAR as sgms/data/School.accdb
-          const ACCDB_IN_JAR = "sgms/data/School.accdb";
+          // 2) Copy the DB *file* that we just shipped in docs/ (=/app/) into CheerpJ's writable FS (/files/)
+          const DB_SITE_PATH = "/app/sgms/data/School.accdb";     // where we placed it in docs/
+          const DB_WRITABLE  = "/files/sgms/data/School.accdb";   // where the app will read/write
 
           log("Preparing DB…");
           const lib = await cheerpjRunLibrary(cp);
           const System = lib.java.lang.System;
-          const ClassLoader = lib.java.lang.ClassLoader;
           const Paths = lib.java.nio.file.Paths;
           const Files = lib.java.nio.file.Files;
           const StandardCopyOption = lib.java.nio.file.StandardCopyOption;
 
-          const inStream = await ClassLoader.getSystemResourceAsStream(ACCDB_IN_JAR);
-          if (inStream == null) throw new Error("ACCDB not found in JAR at: " + ACCDB_IN_JAR);
+          const src = await Paths.get(DB_SITE_PATH, []);
+          const dst = await Paths.get(DB_WRITABLE, []);
+          await Files.createDirectories(dst.getParent());
+          await Files.copy(src, dst, [StandardCopyOption.REPLACE_EXISTING]);
 
-          // write to a few common places so existing code finds it either way
-          const dests = [
-            "/files/sgms/data/School.accdb",  // matches your source tree layout
-            "/files/src/sgms/data/School.accdb", // if your code still uses a "src/…" relative path
-            "/files/School.accdb"                // absolute fallback
-          ];
-          for (const d of dests) {
-            const p = await Paths.get(d, []);
-            await Files.createDirectories(p.getParent());
-            await Files.copy(inStream, p, [StandardCopyOption.REPLACE_EXISTING]);
-            inStream.reset?.(); // reuse stream if supported
-          }
-
-          // make relative paths resolve under /files (so "sgms/data/School.accdb" works)
+          // Make relative paths like "sgms/data/School.accdb" resolve under /files
           await System.setProperty("user.dir", "/files");
 
-          // --- launch your real main (no code changes) ---
+          // 3) Launch your normal main class (unchanged)
           log("Launching app…");
-          const mainClass = "sgms.main.StudentGradeManagementSystem";
+          const mainClass = "sgms.main.StudentGradeManagementSystem"; // change if your main differs
           await cheerpjRunMain(mainClass, cp);
-
           log("App launched.");
         } catch (e) {
           log("<b>ERROR:</b> " + (e?.stack || e));

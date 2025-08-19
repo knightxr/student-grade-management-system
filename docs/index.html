@@ -19,8 +19,10 @@
       const log = (m, cls="") =>
         document.getElementById("log").insertAdjacentHTML("beforeend", `<div class="${cls}">${m}</div>`);
 
-      // ---- Use RELATIVE paths (works under /student-grade-management-system/) ----
-      const CP_LIST = [
+      // ----------------------------
+      // Paths on your site (relative)
+      // ----------------------------
+      const CP_REL = [
         "StudentGradeManagementSystem.jar",
         "lib/AbsoluteLayout.jar",
         "lib/commons-lang3-3.8.1.jar",
@@ -30,19 +32,20 @@
         "lib/jackcess-3.0.1.jar",
         "lib/ucanaccess-5.0.1.jar"
       ];
-      const CP = CP_LIST.join(":");
+      const CP_FOR_CJ = CP_REL.map(p => "/app/" + p).join(":"); // what CheerpJ expects
 
-      // DB file you committed alongside the site
-      const DB_SITE   = "sgms/data/School.accdb";            // where Pages serves it from
-      const DB_TARGET = "/files/src/sgms/data/School.accdb"; // where your Java code will look after toAbsolutePath()
+      const DB_SITE_REL = "sgms/data/School.accdb";     // where you committed it
+      const DB_SITE_ABS = "/app/" + DB_SITE_REL;        // absolute for CheerpJ FS
+      const DB_TARGET   = "/files/src/sgms/data/School.accdb"; // where your Java code looks
 
-      // Your main class
       const MAIN_CLASS = "sgms.main.StudentGradeManagementSystem";
 
-      // ---- Preflight: make sure everything is actually on GitHub Pages ----
+      // ---------------------------------
+      // Preflight: prove files are on Pages
+      // ---------------------------------
       async function preflight() {
         let ok = true;
-        for (const p of [...CP_LIST, DB_SITE]) {
+        for (const p of [...CP_REL, DB_SITE_REL]) {
           const res = await fetch(p + "?v=" + Date.now(), { method: "HEAD" });
           if (!res.ok) { ok = false; log(`Missing on server: ${p} (status ${res.status})`, "bad"); }
           else { log(`OK: ${p}`, "ok"); }
@@ -60,40 +63,35 @@
           cheerpjCreateDisplay(1120, 720);
           log("CheerpJ ready.");
 
-          // Load library with your classpath
-          log("Loading Java library (classpath)…");
-          const lib   = await cheerpjRunLibrary(CP);
-          const System = lib.java.lang.System;
-          const NIO   = lib.java.nio.file;
-          const Paths = NIO.Paths;
-          const Files = NIO.Files;
-          const StandardCopyOption = NIO.StandardCopyOption;
-
-          // ---- Copy DB from site (/app resolves to current site) -> writable FS (/files) ----
+          // ------------------------------------
+          // Copy DB from /app/... -> /files/...
+          // ------------------------------------
+          // Use library mode and AWAIT each Java class handle:
           log("Preparing database…");
+          const lib = await cheerpjRunLibrary(""); // NIO only; no app classpath needed
 
-          // CheerpJ exposes overloaded Java statics with typed names:
-          // Paths.get(String, String...) => get$java_lang_String$[Ljava_lang_String;
-          // Files.createDirectories(Path) => createDirectories$java_nio_file_Path
-          // Files.copy(Path,Path,CopyOption...) => copy$java_nio_file_Path$java_nio_file_Path$[Ljava_nio_file_CopyOption;
+          const System = await lib.java.lang.System;
+          const Paths  = await lib.java.nio.file.Paths;
+          const Files  = await lib.java.nio.file.Files;
+          const Opts   = await lib.java.nio.file.StandardCopyOption;
 
-          const src = await Paths["get$java_lang_String$[Ljava_lang_String;"]("sgms/data/School.accdb", []);
-          const dst = await Paths["get$java_lang_String$[Ljava_lang_String;"](DB_TARGET, []);
+          // These static methods exist when the class handles are awaited:
+          const src = await Paths.get(DB_SITE_ABS, []);         // /app/sgms/data/School.accdb
+          const dst = await Paths.get(DB_TARGET, []);           // /files/src/sgms/data/School.accdb
 
-          await Files["createDirectories$java_nio_file_Path"](dst.getParent());
-          await Files["copy$java_nio_file_Path$java_nio_file_Path$[Ljava_nio_file_CopyOption;"](
-            src, dst, [StandardCopyOption.REPLACE_EXISTING]
-          );
-
+          await Files.createDirectories(dst.getParent());
+          await Files.copy(src, dst, [Opts.REPLACE_EXISTING]);
           log("DB copied to " + DB_TARGET);
 
           // Make your Path.of(...).toAbsolutePath() resolve under /files
           await System.setProperty("user.dir", "/files");
           log('user.dir set to "/files"');
 
-          // ---- Launch your actual app ----
+          // -------------------------
+          // Launch your real main()
+          // -------------------------
           log("Launching app main…");
-          await cheerpjRunMain(MAIN_CLASS, CP);
+          await cheerpjRunMain(MAIN_CLASS, CP_FOR_CJ);
           log("App launched.");
         } catch (e) {
           log("<b>ERROR</b>: " + (e && (e.stack || e)), "bad");

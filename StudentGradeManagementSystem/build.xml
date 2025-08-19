@@ -2,25 +2,25 @@
 <project name="StudentGradeManagementSystem" default="default" basedir=".">
     <description>Builds, tests, and runs the project StudentGradeManagementSystem.</description>
 
-    <!-- Keep NetBeans' generated build logic -->
+    <!-- Keep NetBeans' generated logic -->
     <import file="nbproject/build-impl.xml"/>
 
     <!-- Copy non-Java resources (e.g., .accdb, images, properties) into build/classes
-         so they end up INSIDE the jar at the same package paths as under src/. -->
+         so they end up INSIDE the jar at the same paths as under src/. -->
     <target name="-post-compile">
         <echo message="Copying non-Java resources to ${build.classes.dir}"/>
         <copy todir="${build.classes.dir}">
-            <!-- Everything from src/ except .java files -->
             <fileset dir="src" excludes="**/*.java"/>
         </copy>
     </target>
 
-    <!-- Build a single executable uber-jar: app + all dependency jars from dist/lib -->
-    <target name="-post-jar" depends="jar">
-        <echo message="Building uber-jar ${application.title}-all.jar"/>
-        <delete file="${dist.dir}/${application.title}-all.jar" quiet="true"/>
+    <!-- Build a single executable uber-jar: app + all dependency jars from dist/lib.
+         IMPORTANT: DO NOT add depends="jar" here, or you'll create a circular dependency. -->
+    <target name="-post-jar">
+        <echo message="Building uber-jar ${ant.project.name}-all.jar"/>
+        <delete file="${dist.dir}/${ant.project.name}-all.jar" quiet="true"/>
 
-        <jar destfile="${dist.dir}/${application.title}-all.jar" filesetmanifest="mergewithoutmain">
+        <jar destfile="${dist.dir}/${ant.project.name}-all.jar" filesetmanifest="mergewithoutmain">
             <!-- Ensure the final jar has the right entry point -->
             <manifest>
                 <!-- NetBeans sets ${main.class} in nbproject/project.properties -->
@@ -37,8 +37,8 @@
         </jar>
     </target>
 
-    <!-- Optional: tidy up the uber-jar on clean -->
+    <!-- Optional: remove uber-jar on clean -->
     <target name="-post-clean">
-        <delete file="${dist.dir}/${application.title}-all.jar" quiet="true"/>
+        <delete file="${dist.dir}/${ant.project.name}-all.jar" quiet="true"/>
     </target>
 </project>

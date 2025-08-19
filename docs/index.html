@@ -19,9 +19,7 @@
       const log = (m, cls="") =>
         document.getElementById("log").insertAdjacentHTML("beforeend", `<div class="${cls}">${m}</div>`);
 
-      // ----------------------------
-      // Relative paths (project page)
-      // ----------------------------
+      // --------- RELATIVE paths (project pages) ----------
       const CP_REL = [
         "StudentGradeManagementSystem.jar",
         "lib/AbsoluteLayout.jar",
@@ -32,17 +30,18 @@
         "lib/jackcess-3.0.1.jar",
         "lib/ucanaccess-5.0.1.jar"
       ];
-      const CP_FOR_CJ = CP_REL.map(p => "/app/" + p).join(":"); // what CheerpJ expects
+      const CP_FOR_CJ = CP_REL.map(p => "/app/" + p).join(":"); // CheerpJ wants absolute-in-VM paths
 
-      const DB_SITE_REL = "sgms/data/School.accdb";     // served by Pages
-      const DB_SITE_ABS = "/app/" + DB_SITE_REL;        // absolute path in CheerpJ FS
-      const DB_TARGET   = "/files/src/sgms/data/School.accdb"; // where your Java code resolves to
+      // DB lives in the site here (read-only)…
+      const DB_SITE_REL = "sgms/data/School.accdb";
+      const DB_SITE_ABS = "/app/" + DB_SITE_REL;
+      // …and we’ll place the runtime copy here (writable):
+      const DB_TARGET   = "/files/src/sgms/data/School.accdb";
+      const DB_PARENT   = "/files/src/sgms/data"; // parent folder for mkdirs
 
       const MAIN_CLASS = "sgms.main.StudentGradeManagementSystem";
 
-      // ---------------------------------
-      // Preflight: prove files are on Pages
-      // ---------------------------------
+      // Simple preflight so we fail fast if something is missing on Pages
       async function preflight() {
         let ok = true;
         for (const p of [...CP_REL, DB_SITE_REL]) {
@@ -63,38 +62,36 @@
           cheerpjCreateDisplay(1120, 720);
           log("CheerpJ ready.");
 
-          // ------------------------------------
-          // Copy DB from /app/... -> /files/...
-          // ------------------------------------
+          // -------- Prepare DB (plain java.io for dirs, then Files.copy) --------
           log("Preparing database…");
-          // NIO only; no need for app classpath to copy a site file
-          const lib = await cheerpjRunLibrary("");
+          const lib   = await cheerpjRunLibrary("");      // stdlib only
+          const System= await lib.java.lang.System;
+          const File  = await lib.java.io.File;
+          const Paths = await lib.java.nio.file.Paths;
+          const Files = await lib.java.nio.file.Files;
+          const Opts  = await lib.java.nio.file.StandardCopyOption;
 
-          const System = await lib.java.lang.System;
-          const Paths  = await lib.java.nio.file.Paths;
-          const Files  = await lib.java.nio.file.Files;
-          const Opts   = await lib.java.nio.file.StandardCopyOption;
+          // Make sure /files/src/sgms/data exists
+          const dir = await new File(DB_PARENT);
+          await dir.mkdirs();
 
-          // Get Path objects (await the results)
+          // Resolve source and destination Paths
           const src = await Paths.get(DB_SITE_ABS, []);   // /app/sgms/data/School.accdb
           const dst = await Paths.get(DB_TARGET, []);     // /files/src/sgms/data/School.accdb
-          const parent = await dst.getParent();           // <-- MUST await, returns a Java object
 
-          // Some CheerpJ versions require typed names for overloaded statics.
-          // We resolve both typed and plain variants and use whichever exists.
-          const Files_createDirectories =
-            Files["createDirectories$java_nio_file_Path"] || Files.createDirectories;
-          const Files_copy_varargs =
-            Files["copy$java_nio_file_Path$java_nio_file_Path$[Ljava_nio_file_CopyOption;"];
-          const Files_copy_plain =
-            Files["copy$java_nio_file_Path$java_nio_file_Path"] || Files.copy;
+          // Copy, preferring the varargs overload; fall back to 2-arg copy
+          const copyVarargs = Files["copy$java_nio_file_Path$java_nio_file_Path$[Ljava_nio_file_CopyOption;"];
+          const copyPlain   = Files["copy$java_nio_file_Path$java_nio_file_Path"] || Files.copy;
 
-          // Create parent dir, then copy (prefer varargs overload; fall back to plain)
-          await Files_createDirectories(parent);
-          if (Files_copy_varargs) {
-            await Files_copy_varargs(src, dst, [Opts.REPLACE_EXISTING]);
+          if (copyVarargs) {
+            await copyVarargs(src, dst, [Opts.REPLACE_EXISTING]);
           } else {
-            await Files_copy_plain(src, dst);
+            // If the file already exists, delete then copy (since we can’t pass REPLACE_EXISTING)
+            const exists = (await new File(DB_TARGET)).exists ? await (await new File(DB_TARGET)).exists() : false;
+            if (exists && Files["delete$java_nio_file_Path"]) {
+              await Files["delete$java_nio_file_Path"](dst);
+            }
+            await copyPlain(src, dst);
           }
           log("DB copied to " + DB_TARGET);
 
@@ -102,9 +99,7 @@
           await System.setProperty("user.dir", "/files");
           log('user.dir set to "/files"');
 
-          // -------------------------
-          // Launch your real main()
-          // -------------------------
+          // ------------- Launch your real main() -------------
           log("Launching app main…");
           await cheerpjRunMain(MAIN_CLASS, CP_FOR_CJ);
           log("App launched.");

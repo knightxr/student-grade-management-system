@@ -19,9 +19,7 @@
       const log = (m, cls="") =>
         document.getElementById("log").insertAdjacentHTML("beforeend", `<div class="${cls}">${m}</div>`);
 
-      // ----------------------------
-      // Paths on your site (relative)
-      // ----------------------------
+      // ---- Relative paths (project Pages) ----
       const CP_REL = [
         "StudentGradeManagementSystem.jar",
         "lib/AbsoluteLayout.jar",
@@ -34,15 +32,13 @@
       ];
       const CP_FOR_CJ = CP_REL.map(p => "/app/" + p).join(":"); // what CheerpJ expects
 
-      const DB_SITE_REL = "sgms/data/School.accdb";     // where you committed it
-      const DB_SITE_ABS = "/app/" + DB_SITE_REL;        // absolute for CheerpJ FS
-      const DB_TARGET   = "/files/src/sgms/data/School.accdb"; // where your Java code looks
+      const DB_SITE_REL = "sgms/data/School.accdb";     // served by Pages
+      const DB_SITE_ABS = "/app/" + DB_SITE_REL;        // absolute in CheerpJ FS
+      const DB_TARGET   = "/files/src/sgms/data/School.accdb"; // where your Java code resolves to
 
       const MAIN_CLASS = "sgms.main.StudentGradeManagementSystem";
 
-      // ---------------------------------
-      // Preflight: prove files are on Pages
-      // ---------------------------------
+      // Preflight: confirm files are actually on GitHub Pages
       async function preflight() {
         let ok = true;
         for (const p of [...CP_REL, DB_SITE_REL]) {
@@ -63,33 +59,40 @@
           cheerpjCreateDisplay(1120, 720);
           log("CheerpJ ready.");
 
-          // ------------------------------------
-          // Copy DB from /app/... -> /files/...
-          // ------------------------------------
-          // Use library mode and AWAIT each Java class handle:
+          // --- Prepare DB using Java NIO (with typed-overload fallbacks) ---
           log("Preparing database…");
-          const lib = await cheerpjRunLibrary(""); // NIO only; no app classpath needed
+          const lib   = await cheerpjRunLibrary(""); // NIO only
+          const System= await lib.java.lang.System;
+          const Paths = await lib.java.nio.file.Paths;
+          const Files = await lib.java.nio.file.Files;
+          const Opts  = await lib.java.nio.file.StandardCopyOption;
 
-          const System = await lib.java.lang.System;
-          const Paths  = await lib.java.nio.file.Paths;
-          const Files  = await lib.java.nio.file.Files;
-          const Opts   = await lib.java.nio.file.StandardCopyOption;
+          // Some CheerpJ versions require using the exact typed names for overloaded statics.
+          const Paths_get =
+            Paths["get$java_lang_String$[Ljava_lang_String;"] ||
+            Paths.get;
 
-          // These static methods exist when the class handles are awaited:
-          const src = await Paths.get(DB_SITE_ABS, []);         // /app/sgms/data/School.accdb
-          const dst = await Paths.get(DB_TARGET, []);           // /files/src/sgms/data/School.accdb
+          const Files_createDirectories =
+            Files["createDirectories$java_nio_file_Path"] ||
+            Files.createDirectories;
 
-          await Files.createDirectories(dst.getParent());
-          await Files.copy(src, dst, [Opts.REPLACE_EXISTING]);
+          const Files_copy =
+            Files["copy$java_nio_file_Path$java_nio_file_Path$[Ljava_nio_file_CopyOption;"] ||
+            Files.copy;
+
+          // Source (/app/...) -> Destination (/files/...)
+          const src = await Paths_get(DB_SITE_ABS, []);  // "/app/sgms/data/School.accdb"
+          const dst = await Paths_get(DB_TARGET, []);    // "/files/src/sgms/data/School.accdb"
+
+          await Files_createDirectories(dst.getParent());
+          await Files_copy(src, dst, [Opts.REPLACE_EXISTING]);
           log("DB copied to " + DB_TARGET);
 
-          // Make your Path.of(...).toAbsolutePath() resolve under /files
+          // Make Path.of(...).toAbsolutePath() resolve under /files
           await System.setProperty("user.dir", "/files");
           log('user.dir set to "/files"');
 
-          // -------------------------
-          // Launch your real main()
-          // -------------------------
+          // --- Launch your actual app ---
           log("Launching app main…");
           await cheerpjRunMain(MAIN_CLASS, CP_FOR_CJ);
           log("App launched.");

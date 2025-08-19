@@ -2,112 +2,26 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>SGMS Browser Demo</title>
+    <title>Student Grade Management System — Download</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <script src="https://cjrtnc.leaningtech.com/4.2/loader.js"></script>
     <style>
-      html,body{height:100%;margin:0;background:#0f1115;color:#e6e6e6;font:14px/1.4 system-ui}
-      #log{position:fixed;top:10px;left:10px;background:#1b1e25;border:1px solid #2a2f3a;border-radius:10px;padding:10px 12px;max-width:92vw;z-index:9}
-      #log b{color:#ffb4a6}
-      .ok{color:#9cd67d}
-      .bad{color:#ff7b7b}
+      body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+           margin:0;display:grid;place-items:center;min-height:100dvh;background:#0f1115;color:#e6e6e6}
+      .card{background:#171a21;border:1px solid #2a2f3a;border-radius:14px;padding:24px;max-width:640px}
+      a.button{display:inline-block;margin-top:8px;padding:10px 16px;border-radius:10px;
+               background:#2d6cdf;color:#fff;text-decoration:none}
+      code{background:#1b1e25;border-radius:6px;padding:2px 6px}
     </style>
   </head>
   <body>
-    <div id="log">Starting…</div>
-    <script>
-      const log = (m, cls="") =>
-        document.getElementById("log").insertAdjacentHTML("beforeend", `<div class="${cls}">${m}</div>`);
-
-      // --------- RELATIVE paths (project pages) ----------
-      const CP_REL = [
-        "StudentGradeManagementSystem.jar",
-        "lib/AbsoluteLayout.jar",
-        "lib/commons-lang3-3.8.1.jar",
-        "lib/commons-logging-1.2.jar",
-        "lib/flatlaf-3.6.jar",
-        "lib/hsqldb-2.5.0.jar",
-        "lib/jackcess-3.0.1.jar",
-        "lib/ucanaccess-5.0.1.jar"
-      ];
-      const CP_FOR_CJ = CP_REL.map(p => "/app/" + p).join(":"); // CheerpJ wants absolute-in-VM paths
-
-      // DB lives in the site here (read-only)…
-      const DB_SITE_REL = "sgms/data/School.accdb";
-      const DB_SITE_ABS = "/app/" + DB_SITE_REL;
-      // …and we’ll place the runtime copy here (writable):
-      const DB_TARGET   = "/files/src/sgms/data/School.accdb";
-      const DB_PARENT   = "/files/src/sgms/data"; // parent folder for mkdirs
-
-      const MAIN_CLASS = "sgms.main.StudentGradeManagementSystem";
-
-      // Simple preflight so we fail fast if something is missing on Pages
-      async function preflight() {
-        let ok = true;
-        for (const p of [...CP_REL, DB_SITE_REL]) {
-          const res = await fetch(p + "?v=" + Date.now(), { method: "HEAD" });
-          if (!res.ok) { ok = false; log(`Missing on server: ${p} (status ${res.status})`, "bad"); }
-          else { log(`OK: ${p}`, "ok"); }
-        }
-        if (!ok) throw new Error("One or more files are missing on GitHub Pages. Fix the red lines above.");
-      }
-
-      (async function main() {
-        try {
-          log("Preflight…");
-          await preflight();
-
-          log("Loading CheerpJ runtime…");
-          await cheerpjInit();
-          cheerpjCreateDisplay(1120, 720);
-          log("CheerpJ ready.");
-
-          // -------- Prepare DB (plain java.io for dirs, then Files.copy) --------
-          log("Preparing database…");
-          const lib   = await cheerpjRunLibrary("");      // stdlib only
-          const System= await lib.java.lang.System;
-          const File  = await lib.java.io.File;
-          const Paths = await lib.java.nio.file.Paths;
-          const Files = await lib.java.nio.file.Files;
-          const Opts  = await lib.java.nio.file.StandardCopyOption;
-
-          // Make sure /files/src/sgms/data exists
-          const dir = await new File(DB_PARENT);
-          await dir.mkdirs();
-
-          // Resolve source and destination Paths
-          const src = await Paths.get(DB_SITE_ABS, []);   // /app/sgms/data/School.accdb
-          const dst = await Paths.get(DB_TARGET, []);     // /files/src/sgms/data/School.accdb
-
-          // Copy, preferring the varargs overload; fall back to 2-arg copy
-          const copyVarargs = Files["copy$java_nio_file_Path$java_nio_file_Path$[Ljava_nio_file_CopyOption;"];
-          const copyPlain   = Files["copy$java_nio_file_Path$java_nio_file_Path"] || Files.copy;
-
-          if (copyVarargs) {
-            await copyVarargs(src, dst, [Opts.REPLACE_EXISTING]);
-          } else {
-            // If the file already exists, delete then copy (since we can’t pass REPLACE_EXISTING)
-            const exists = (await new File(DB_TARGET)).exists ? await (await new File(DB_TARGET)).exists() : false;
-            if (exists && Files["delete$java_nio_file_Path"]) {
-              await Files["delete$java_nio_file_Path"](dst);
-            }
-            await copyPlain(src, dst);
-          }
-          log("DB copied to " + DB_TARGET);
-
-          // Make your Path.of(...).toAbsolutePath() resolve under /files
-          await System.setProperty("user.dir", "/files");
-          log('user.dir set to "/files"');
-
-          // ------------- Launch your real main() -------------
-          log("Launching app main…");
-          await cheerpjRunMain(MAIN_CLASS, CP_FOR_CJ);
-          log("App launched.");
-        } catch (e) {
-          log("<b>ERROR</b>: " + (e && (e.stack || e)), "bad");
-          console.error(e);
-        }
-      })();
-    </script>
+    <main class="card">
+      <h1>Student Grade Management System</h1>
+      <p>Download the runnable JAR:</p>
+      <p><a class="button" href="StudentGradeManagementSystem-all.jar" download>Download JAR</a></p>
+      <h3>How to run</h3>
+      <p>Requires Java 17+ installed. Then double-click the JAR or run:</p>
+      <pre><code>java -jar StudentGradeManagementSystem-all.jar</code></pre>
+      <p>If your browser opens the JAR as text, right-click the link and choose <em>Save link as…</em></p>
+    </main>
   </body>
 </html>

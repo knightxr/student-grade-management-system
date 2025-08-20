@@ -122,6 +122,8 @@ ant javadoc
 
    * `ucanaccess-x.y.z.jar`, `jackcess-*.jar`, `commons-lang3-*.jar`, `commons-logging-*.jar`, `hsqldb-*.jar`
 
+> The included database has a list of about 300 students, however if you would like to test other parts of the program, you'd need to add them to courses, give them marks, etc.
+
 ---
 
 ## Login & Users
@@ -130,6 +132,7 @@ ant javadoc
 * **Signup/Reset:** Both require the **administrator password** for authorisation (typed by a teacher/admin).
 * If you need to set/reset the admin password manually, update `tblUsers.passwordHash` for username `admin` or use the reset screen if you know the current admin password.
 
+> For demonstration purposes, the default Administrator password is simply `admin`. Same goes for both username and password for login if you don't want to create an account.
 > Passwords are stored with a **simple educational hash** (see `CredentialManager`). For a real app, use BCrypt/Argon2.
 
 ---
@@ -199,6 +202,8 @@ Main tables created by `DBSetup`:
   * Simple placeholders: `{{KEY}}`, `${KEY}`, `<<KEY>>`, `«KEY»`
   * Word merge fields: `<w:fldSimple ... MERGEFIELD KEY ...>` and run-based field codes
 * Generated file is opened with the OS default (Word) using `Desktop.open`.
+
+> **Please note that you will ned Microsoft Word installed to use this feature.**
 
 ---
 

@@ -34,7 +34,6 @@
           <Group type="102" alignment="1" attributes="0">
               <EmptySpace pref="502" max="32767" attributes="0"/>
               <Group type="103" groupAlignment="0" attributes="0">
-                  <Component id="jLabelErrorText" min="-2" pref="357" max="-2" attributes="0"/>
                   <Group type="102" attributes="0">
                       <Group type="103" groupAlignment="0" attributes="0">
                           <Component id="jLabelYourPassword" min="-2" max="-2" attributes="0"/>
@@ -52,7 +51,7 @@
                   </Group>
                   <Component id="jLabelCreateAnAccount" min="-2" pref="354" max="-2" attributes="0"/>
               </Group>
-              <EmptySpace min="-2" pref="502" max="-2" attributes="0"/>
+              <EmptySpace min="-2" pref="505" max="-2" attributes="0"/>
           </Group>
           <Group type="102" attributes="0">
               <Group type="103" groupAlignment="0" attributes="0">
@@ -78,6 +77,11 @@
               <EmptySpace max="32767" attributes="0"/>
               <Component id="jButtonNeedHelp" min="-2" max="-2" attributes="0"/>
               <EmptySpace min="-2" pref="35" max="-2" attributes="0"/>
+          </Group>
+          <Group type="102" alignment="1" attributes="0">
+              <EmptySpace max="32767" attributes="0"/>
+              <Component id="jLabelErrorText" min="-2" pref="500" max="-2" attributes="0"/>
+              <EmptySpace max="32767" attributes="0"/>
           </Group>
       </Group>
     </DimensionLayout>

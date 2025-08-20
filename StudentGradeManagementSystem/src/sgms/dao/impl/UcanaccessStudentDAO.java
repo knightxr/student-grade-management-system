@@ -20,8 +20,6 @@ import java.util.List;
  */
 public class UcanaccessStudentDAO implements StudentDAO {
 
-    // --- SQL (fixed strings; no user data inside) ---
-
     private static final String INSERT_STUDENT =
             "INSERT INTO tblStudents(firstName, lastName, gradeLevel) VALUES (?,?,?)";
 
@@ -62,7 +60,7 @@ public class UcanaccessStudentDAO implements StudentDAO {
     private static final String DELETE_ENROLLMENT =
             "DELETE FROM tblStudentCourses WHERE studentId = ? AND courseId = ?";
 
-    // create the link table if it does not exist
+    // Create the link table if it does not exist
     private static final String CREATE_ENROLL_TABLE =
             "CREATE TABLE tblStudentCourses (" +
             "  studentId INTEGER NOT NULL, " +
@@ -72,7 +70,14 @@ public class UcanaccessStudentDAO implements StudentDAO {
             "  FOREIGN KEY (courseId)  REFERENCES tblCourses(courseId)" +
             ")";
 
-    // --- CRUD ---
+    private static final String DELETE_ATTENDANCE =
+            "DELETE FROM tblAttendance WHERE studentId=?";
+    private static final String DELETE_GRADES =
+            "DELETE FROM tblGrades WHERE studentId=?";
+    private static final String DELETE_FINAL_GRADES =
+            "DELETE FROM tblFinalGrades WHERE studentId=?";
+    private static final String DELETE_FEEDBACK =
+            "DELETE FROM tblFeedback WHERE studentId=?";
 
     /** Add a new student and return it with the new ID. */
     @Override
@@ -109,20 +114,45 @@ public class UcanaccessStudentDAO implements StudentDAO {
         }
     }
 
-    /** Delete a student and their course links. */
+    /**
+     * Delete a student and all dependent records (attendance, grades, finalGrades,
+     * feedback, enrolments). Done in a single transaction so we never leave the DB
+     * in a half-deleted state.
+     */
     @Override
     public boolean delete(int id) throws SQLException {
         try (Connection c = DB.get();
-             PreparedStatement psEnroll = c.prepareStatement(DELETE_ENROLLMENTS);
+             PreparedStatement psAttend  = c.prepareStatement(DELETE_ATTENDANCE);
+             PreparedStatement psGrades  = c.prepareStatement(DELETE_GRADES);
+             PreparedStatement psFinal   = c.prepareStatement(DELETE_FINAL_GRADES);
+             PreparedStatement psNotes   = c.prepareStatement(DELETE_FEEDBACK);
+             PreparedStatement psEnroll  = c.prepareStatement(DELETE_ENROLLMENTS);
              PreparedStatement psStudent = c.prepareStatement(DELETE_STUDENT)) {
 
             ensureEnrollmentTableExists(c);
 
-            psEnroll.setInt(1, id);
-            psEnroll.executeUpdate();
+            boolean oldAuto = c.getAutoCommit();
+            c.setAutoCommit(false);
+            try {
+                // child tables first
+                psAttend.setInt(1, id);  psAttend.executeUpdate();
+                psGrades.setInt(1, id);  psGrades.executeUpdate();
+                psFinal.setInt(1, id);   psFinal.executeUpdate();
+                psNotes.setInt(1, id);   psNotes.executeUpdate();
+                psEnroll.setInt(1, id);  psEnroll.executeUpdate();
 
-            psStudent.setInt(1, id);
-            return psStudent.executeUpdate() == 1;
+                // then delete the student (parent)
+                psStudent.setInt(1, id);
+                int rows = psStudent.executeUpdate();
+
+                c.commit();
+                c.setAutoCommit(oldAuto);
+                return rows == 1;
+            } catch (SQLException ex) {
+                c.rollback();
+                c.setAutoCommit(oldAuto);
+                throw ex;
+            }
         }
     }
 

@@ -1,38 +1,34 @@
 package sgms.dao;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.*;
+import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
+/**
+ * Opens a connection to our MS Access database using UCanAccess. We build an
+ * absolute file path so it works on any computer.
+ */
 public final class DB {
-    private DB() {}
 
+    private DB() {
+        // utility class: do not make objects of this
+    }
+
+    /**
+     * Make and return a new database connection.
+     *
+     * @return open JDBC connection
+     * @throws SQLException if the connection fails
+     */
     public static Connection get() throws SQLException {
-        // 1) Where we'll keep the runtime DB (per-user, writable)
-        Path appDir  = Paths.get(System.getProperty("user.home"), ".sgms");
-        Path dbPath  = appDir.resolve("School.accdb");
+        // Make the path absolute so it doesn't depend on the working folder.
+        Path db = Path.of("src", "sgms", "data", "School.accdb").toAbsolutePath();
 
-        // 2) Ensure folder exists and extract the embedded DB if missing
-        try {
-            Files.createDirectories(appDir);
-            if (Files.notExists(dbPath) || Files.size(dbPath) == 0) {
-                try (InputStream in = DB.class.getResourceAsStream("/sgms/data/School.accdb")) {
-                    if (in == null) throw new IllegalStateException(
-                        "Embedded DB resource not found at /sgms/data/School.accdb");
-                    Files.copy(in, dbPath, StandardCopyOption.REPLACE_EXISTING);
-                }
-            }
-        } catch (IOException e) {
-            throw new SQLException("Failed to prepare database file at " + dbPath, e);
-        }
+        // Build the UCanAccess URL from the file path.
+        String url = "jdbc:ucanaccess://" + db.toString();
 
-        // 3) Build UCanAccess URL to the real file
-        String url = "jdbc:ucanaccess://" + dbPath.toString()
-                   + ";memory=false;immediatelyReleaseResources=true";
-
+        // Connect and return.
         return DriverManager.getConnection(url);
     }
 }

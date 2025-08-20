@@ -770,22 +770,11 @@ public class MainPage extends javax.swing.JFrame {
     private void jButtonDeleteActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonDeleteActionPerformed
         javax.swing.table.TableModel m = jTable.getModel();
 
-        // ── Grades grid (per-assignment) keeps its old behaviour
+        // Grades grid (per-assignment) keeps its old behaviour
         if (m instanceof StudentGradesTableModel) {
-            try {
-                setActiveButton(jButtonViewStudentGrades);
-            } catch (Throwable ignore) {
-            }
+            try { setActiveButton(jButtonViewStudentGrades); } catch (Throwable ignore) {}
             javax.swing.table.TableColumnModel cm = jTable.getColumnModel();
-            int deleteCol = -1;
-            for (int i = 0; i < cm.getColumnCount(); i++) {
-                Object h = cm.getColumn(i).getHeaderValue();
-                if ("Delete".equals(String.valueOf(h))) {
-                    deleteCol = i;
-                    break;
-                }
-            }
-            if (deleteCol == -1) {
+            if (findViewColumnByHeader("Delete") == -1) {
                 javax.swing.table.TableColumn col = new javax.swing.table.TableColumn(cm.getColumnCount());
                 col.setHeaderValue("Delete");
                 col.setCellEditor(new javax.swing.DefaultCellEditor(new javax.swing.JCheckBox()));
@@ -802,46 +791,48 @@ public class MainPage extends javax.swing.JFrame {
             return;
         }
 
-        // ── Final grades: no delete
-        if (finalGradesModel != null) {
-            return;
-        }
+        // Final grades: no delete
+        if (finalGradesModel != null) return;
 
-        // ── COURSES: Delete button simply toggles the visibility of the Delete column.
-        //    The user ticks checkboxes in the table, and SAVE will do the actual delete.
+        // COURSES
         if (courseModel != null) {
             if (!courseDeleteMode) {
-                jTable.addColumn(courseDeleteColumn);
-                jTable.moveColumn(jTable.getColumnCount() - 1, 0);
+                if (courseDeleteColumn != null && findViewColumnByHeader("Delete") == -1) {
+                    jTable.addColumn(courseDeleteColumn);
+                    jTable.moveColumn(jTable.getColumnCount() - 1, 0);
+                }
                 courseDeleteMode = true;
             } else {
-                // hide the delete column, but DO NOT clear the flags – let Save handle them
-                jTable.removeColumn(courseDeleteColumn);
+                removeColumnByHeaderIfVisible("Delete");
                 courseDeleteMode = false;
             }
+            resetEqualColumnWidths();
             jTable.clearSelection();
             jTable.revalidate();
             jTable.repaint();
             return;
         }
 
-        // ── ASSIGNMENTS: same behaviour as courses
+        // ASSIGNMENTS
         if (assignmentModel != null) {
             if (!assignmentDeleteMode) {
-                jTable.addColumn(assignmentDeleteColumn);
-                jTable.moveColumn(jTable.getColumnCount() - 1, 0);
+                if (assignmentDeleteColumn != null && findViewColumnByHeader("Delete") == -1) {
+                    jTable.addColumn(assignmentDeleteColumn);
+                    jTable.moveColumn(jTable.getColumnCount() - 1, 0);
+                }
                 assignmentDeleteMode = true;
             } else {
-                jTable.removeColumn(assignmentDeleteColumn);
+                removeColumnByHeaderIfVisible("Delete");
                 assignmentDeleteMode = false;
             }
+            resetEqualColumnWidths();
             jTable.clearSelection();
             jTable.revalidate();
             jTable.repaint();
             return;
         }
 
-        // ── FEEDBACK: confirm & delete one row (unchanged)
+        // FEEDBACK (confirm & delete one row)
         if (feedbackModel != null) {
             int row = jTable.getSelectedRow();
             if (row >= 0) {
@@ -863,27 +854,14 @@ public class MainPage extends javax.swing.JFrame {
             return;
         }
 
-        // ── STUDENTS: same toggle-visibility pattern as courses/assignments
+        // STUDENTS
         if (studentTableModel != null) {
             int courseId = getSelectedCourseId();
-            if (courseId > 0) {
-                if (!selectionMode) {
-                    startEnrollmentEdit();
-                }
+            if (courseId > 0) { // editing enrolments
+                if (!selectionMode) startEnrollmentEdit();
                 return;
             }
-            if (!studentDeleteMode) {
-                jTable.addColumn(studentDeleteColumn);
-                jTable.moveColumn(jTable.getColumnCount() - 1, 0);
-                studentDeleteMode = true;
-            } else {
-                jTable.removeColumn(studentDeleteColumn);
-                // do NOT clear flags here – Save will read and act on ticked rows
-                studentDeleteMode = false;
-            }
-            jTable.clearSelection();
-            jTable.revalidate();
-            jTable.repaint();
+            setStudentDeleteColumnVisible(!studentDeleteMode);
             return;
         }
     }//GEN-LAST:event_jButtonDeleteActionPerformed
@@ -1023,6 +1001,9 @@ public class MainPage extends javax.swing.JFrame {
             studentTableModel.clearDeleted();
 
             loadStudentsForSelectedCourse();
+            studentDeleteMode = false;
+            removeColumnByHeaderIfVisible("Delete");
+            resetEqualColumnWidths();
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this, "Unable to save students: " + ex.getMessage(),
                     "Error", JOptionPane.ERROR_MESSAGE);
@@ -1030,75 +1011,49 @@ public class MainPage extends javax.swing.JFrame {
     }//GEN-LAST:event_jButtonSaveActionPerformed
 
     private void jButtonEditActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonEditActionPerformed
-        // Final grades is read-only
-        if (finalGradesModel != null) {
-            return;
-        }
+        if (finalGradesModel != null) return;
 
-        // Enrolment selection mode (checkbox table)
         if (selectionMode && studentSelectionModel != null) {
-            if (jTable.getRowCount() > 0) {
-                startEditAt(0, 0); // first column is the checkbox
-            }
+            if (jTable.getRowCount() > 0) startEditAt(0, Math.max(0, findViewColumnByHeader("Delete")));
             return;
         }
 
-        // Manage Courses / Assignments / Feedback → just go to the first editable cell
-        if (courseModel != null || assignmentModel != null || feedbackModel != null) {
-            if (jTable.getRowCount() > 0) {
-                startEditAtFirstEditable(0, null);
-            }
+        if (courseModel != null) {
+            if (jTable.getRowCount() > 0) startEditAtFirstEditable(0, 2); // Name
             return;
         }
-
-        // Attendance → today’s column if visible, else first editable
+        if (assignmentModel != null) {
+            if (jTable.getRowCount() > 0) startEditAtFirstEditable(0, 2); // Title
+            return;
+        }
+        if (feedbackModel != null) {
+            if (jTable.getRowCount() > 0) startEditAtFirstEditable(0, 2); // Comment
+            return;
+        }
         if (attendanceModel != null) {
             if (jTable.getRowCount() > 0) {
                 int col = (attendanceTodayColumn >= 0 && attendanceTodayColumn < jTable.getColumnCount())
-                        ? attendanceTodayColumn : -1;
-                if (col >= 0) {
-                    startEditAt(0, col);
-                } else {
-                    startEditAtFirstEditable(0, null);
-                }
+                        ? attendanceTodayColumn : 1;
+                startEditAt(0, col);
             }
             return;
         }
-
-        // Student Grades → first assignment column (first editable)
         if (studentGradesModel != null) {
-            if (jTable.getRowCount() > 0) {
-                startEditAtFirstEditable(0, null);
-            }
+            if (jTable.getRowCount() > 0 && jTable.getColumnCount() > 1) startEditAt(0, 1);
             return;
         }
+        if (studentTableModel == null) return;
 
-        // View Students table
-        if (studentTableModel == null) {
-            return;
-        }
-
-        // If a course is selected, Edit means “edit enrolments”
         int courseId = getSelectedCourseId();
-        if (courseId > 0) {
-            if (!selectionMode) {
-                startEnrollmentEdit();
-            }
-            return;
-        }
+        if (courseId > 0) { if (!selectionMode) startEnrollmentEdit(); return; }
 
-        // Otherwise, edit the current cell if editable; else prefer "Delete" (if visible) or "First Name"
         int row = jTable.getSelectedRow();
         int col = jTable.getSelectedColumn();
         if (row >= 0 && col >= 0 && jTable.isCellEditable(row, col)) {
             startEditAt(row, col);
         } else if (jTable.getRowCount() > 0) {
-            int del = findViewColumnByHeader("Delete");
-            if (del >= 0) {
-                startEditAt(0, del);
-            } else {
-                startEditAtFirstEditable(0, "First Name");
-            }
+            int preferred = studentDeleteMode ? Math.max(0, findViewColumnByHeader("Delete")) : 2; // First Name
+            startEditAtFirstEditable(0, preferred);
         }
     }//GEN-LAST:event_jButtonEditActionPerformed
 
@@ -1500,6 +1455,10 @@ public class MainPage extends javax.swing.JFrame {
             // 2) Build and attach the table model
             courseModel = new CourseTableModel(courses);
             jTable.setModel(courseModel);
+            courseDeleteColumn = jTable.getColumnModel().getColumn(0);
+            removeColumnByHeaderIfVisible("Delete");
+            courseDeleteMode = false;
+            resetEqualColumnWidths();
 
             // 3) Enable sorting for this model
             jTable.setRowSorter(new javax.swing.table.TableRowSorter<javax.swing.table.TableModel>(courseModel));
@@ -1551,9 +1510,7 @@ public class MainPage extends javax.swing.JFrame {
             }
 
             // 6) Hide the Delete checkbox column by default (we show it only when Delete mode toggles)
-            courseDeleteColumn = jTable.getColumnModel().getColumn(0);
-            jTable.removeColumn(courseDeleteColumn);
-            courseDeleteMode = false;
+            // (Handled above via removeColumnByHeaderIfVisible)
 
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this,
@@ -1594,6 +1551,9 @@ public class MainPage extends javax.swing.JFrame {
                 studentTableModel = new sgms.ui.StudentTableModel(students);
                 jTable.setModel(studentTableModel);
             }
+            removeColumnByHeaderIfVisible("Delete");
+            studentDeleteMode = false;
+            resetEqualColumnWidths();
 
             // 4) Fresh TableRowSorter for this model (so comparators/keys apply reliably)
             javax.swing.table.TableRowSorter<javax.swing.table.TableModel> sorter
@@ -1660,28 +1620,7 @@ public class MainPage extends javax.swing.JFrame {
                 }
             }
 
-            // 6) Hide the Delete checkbox column by default (we only show it when Delete is toggled)
-            studentDeleteColumn = jTable.getColumnModel().getColumn(0);
-            jTable.removeColumn(studentDeleteColumn);
-            studentDeleteMode = false;
-
-            // 7) Basic column width distribution so the table looks balanced
-            int cols = jTable.getColumnModel().getColumnCount();
-            int w = 0;
-            java.awt.Container parent = jTable.getParent();
-            if (parent != null) {
-                w = parent.getWidth();
-            }
-            if (w <= 0) {
-                w = jTable.getWidth();
-            }
-            int per = (cols > 0 && w > 0) ? Math.max(60, w / cols) : 100;
-            for (int i = 0; i < cols; i++) {
-                jTable.getColumnModel().getColumn(i).setPreferredWidth(per);
-            }
-            jTable.doLayout();
-
-            // 8) Refresh visuals
+            // 6) Refresh visuals
             jTable.clearSelection();
             jTable.revalidate();
             jTable.repaint();
@@ -1715,6 +1654,8 @@ public class MainPage extends javax.swing.JFrame {
             // Table model with first column = checkbox
             studentSelectionModel = new StudentSelectionTableModel(all, initial);
             jTable.setModel(studentSelectionModel);
+            removeColumnByHeaderIfVisible("Delete");
+            resetEqualColumnWidths();
 
             // Fresh sorter for this model
             javax.swing.table.TableRowSorter<javax.swing.table.TableModel> sorter
@@ -1814,6 +1755,8 @@ public class MainPage extends javax.swing.JFrame {
             studentSelectionModel = null;
 
             jTable.setModel(studentGradesModel);
+            removeColumnByHeaderIfVisible("Delete");
+            resetEqualColumnWidths();
 
             // Fresh sorter; default by student name ascending
             javax.swing.table.TableRowSorter<javax.swing.table.TableModel> sorter
@@ -1912,6 +1855,8 @@ public class MainPage extends javax.swing.JFrame {
             studentSelectionModel = null;
 
             jTable.setModel(finalGradesModel);
+            removeColumnByHeaderIfVisible("Delete");
+            resetEqualColumnWidths();
 
             // Sort: Final % ↓, Last Name ↑, First Name ↑
             jTable.setAutoCreateRowSorter(true);
@@ -1942,22 +1887,6 @@ public class MainPage extends javax.swing.JFrame {
                 ((javax.swing.table.DefaultTableCellRenderer) jTable.getTableHeader().getDefaultRenderer())
                         .setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
             }
-
-            // Even column widths so the grid looks neat
-            int cols = jTable.getColumnModel().getColumnCount();
-            int w = 0;
-            java.awt.Container parent = jTable.getParent();
-            if (parent != null) {
-                w = parent.getWidth();
-            }
-            if (w <= 0) {
-                w = jTable.getWidth();
-            }
-            int per = (cols > 0 && w > 0) ? Math.max(70, w / cols) : 100;
-            for (int i = 0; i < cols; i++) {
-                jTable.getColumnModel().getColumn(i).setPreferredWidth(per);
-            }
-            jTable.doLayout();
 
             jTable.clearSelection();
             jTable.revalidate();
@@ -2047,6 +1976,10 @@ public class MainPage extends javax.swing.JFrame {
             List<Assignment> assignments = assignmentDAO.findByCourse(courseId);
             assignmentModel = new AssignmentTableModel(assignments);
             jTable.setModel(assignmentModel);
+            assignmentDeleteColumn = jTable.getColumnModel().getColumn(0);
+            removeColumnByHeaderIfVisible("Delete");
+            assignmentDeleteMode = false;
+            resetEqualColumnWidths();
 
             // Sorter for this model
             javax.swing.table.TableRowSorter<javax.swing.table.TableModel> sorter
@@ -2101,9 +2034,7 @@ public class MainPage extends javax.swing.JFrame {
             }
 
             // Keep the Delete column hidden until Delete mode is toggled
-            assignmentDeleteColumn = jTable.getColumnModel().getColumn(0);
-            jTable.removeColumn(assignmentDeleteColumn);
-            assignmentDeleteMode = false;
+            // (Handled above via removeColumnByHeaderIfVisible)
 
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this, "Unable to load assignments: " + ex.getMessage(),
@@ -2162,6 +2093,8 @@ public class MainPage extends javax.swing.JFrame {
             finalGradesModel = null;
 
             jTable.setModel(attendanceModel);
+            removeColumnByHeaderIfVisible("Delete");
+            resetEqualColumnWidths();
 
             // Sorter (by Student column)
             javax.swing.table.TableRowSorter<javax.swing.table.TableModel> sorter
@@ -2230,6 +2163,8 @@ public class MainPage extends javax.swing.JFrame {
             attendanceModel = null;
 
             jTable.setModel(feedbackModel);
+            removeColumnByHeaderIfVisible("Delete");
+            resetEqualColumnWidths();
 
             // Sorter (by Last Name)
             javax.swing.table.TableRowSorter<javax.swing.table.TableModel> sorter
@@ -2256,30 +2191,90 @@ public class MainPage extends javax.swing.JFrame {
         }
     }
 
-    /**
-     * Returns the current VIEW index of a column with this header text, or -1
-     * if not visible.
-     */
+    /** Find a visible column by header text. Returns view index or -1. */
     private int findViewColumnByHeader(String header) {
         javax.swing.table.TableColumnModel cm = jTable.getColumnModel();
         for (int i = 0; i < cm.getColumnCount(); i++) {
-            Object h = cm.getColumn(i).getHeaderValue();
-            if (header.equals(String.valueOf(h))) {
+            if (header.equals(String.valueOf(cm.getColumn(i).getHeaderValue()))) {
                 return i;
             }
         }
         return -1;
     }
 
-    /**
-     * Removes a column by header text if it is currently visible.
-     */
+    /** Remove a visible column by header text (no-op if not visible). */
     private void removeColumnByHeaderIfVisible(String header) {
-        javax.swing.table.TableColumnModel cm = jTable.getColumnModel();
         int idx = findViewColumnByHeader(header);
         if (idx >= 0) {
-            cm.removeColumn(cm.getColumn(idx));
+            javax.swing.table.TableColumnModel cm = jTable.getColumnModel();
+            javax.swing.table.TableColumn col = cm.getColumn(idx);
+            // If we are removing the Delete column, keep a reference so we can re-add it later.
+            if ("Delete".equals(header)) {
+                studentDeleteColumn = col;
+            }
+            cm.removeColumn(col);
         }
+    }
+
+    /** Give all visible columns a sensible width so none collapse to 0. */
+    private void resetEqualColumnWidths() {
+        javax.swing.table.TableColumnModel cm = jTable.getColumnModel();
+        int cols = cm.getColumnCount();
+        if (cols == 0) return;
+
+        int w = 0;
+        java.awt.Container parent = jTable.getParent();
+        if (parent != null) w = parent.getWidth();
+        if (w <= 0) w = Math.max(jTable.getWidth(), 600);
+
+        int per = Math.max(80, w / cols);
+        for (int i = 0; i < cols; i++) {
+            cm.getColumn(i).setPreferredWidth(per);
+        }
+    }
+
+    /** Show/Hide the Student Delete checkbox column in a robust, header-based way. */
+    private void setStudentDeleteColumnVisible(boolean show) {
+        if (studentTableModel == null) return;
+
+        javax.swing.table.TableColumnModel cm = jTable.getColumnModel();
+        int idx = findViewColumnByHeader("Delete");
+
+        if (show) {
+            if (idx == -1) {
+                // Reuse cached column if we have it, otherwise create a new view column mapped to model index 0.
+                if (studentDeleteColumn == null) {
+                    javax.swing.table.TableColumn col = new javax.swing.table.TableColumn(0);
+                    col.setHeaderValue("Delete");
+                    col.setCellEditor(new javax.swing.DefaultCellEditor(new javax.swing.JCheckBox()));
+                    javax.swing.table.DefaultTableCellRenderer red = new javax.swing.table.DefaultTableCellRenderer();
+                    red.setOpaque(true);
+                    red.setBackground(new java.awt.Color(255, 235, 238));
+                    red.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+                    col.setCellRenderer(red);
+                    studentDeleteColumn = col;
+                }
+                cm.addColumn(studentDeleteColumn);
+                jTable.moveColumn(cm.getColumnCount() - 1, 0); // put it as the first visible column
+            }
+            studentDeleteMode = true;
+        } else {
+            if (idx >= 0) {
+                javax.swing.table.TableColumn col = cm.getColumn(idx);
+                // keep reference for later re-add
+                if ("Delete".equals(String.valueOf(col.getHeaderValue()))) {
+                    studentDeleteColumn = col;
+                }
+                cm.removeColumn(col);
+            }
+            studentDeleteMode = false;
+            studentTableModel.clearDeleted(); // clear ticks when hiding (optional; keeps UI consistent)
+        }
+
+        resetEqualColumnWidths();
+        jTable.clearSelection();
+        jTable.revalidate();
+        jTable.repaint();
     }
 
     /**
@@ -2319,18 +2314,15 @@ public class MainPage extends javax.swing.JFrame {
     }
 
     /**
-     * Starts editing at row, preferring a column header if present, else first
-     * editable.
+     * Starts editing at row, preferring a given column index; falls back to the
+     * first editable column if the preferred index is invalid or non-editable.
      */
-    private void startEditAtFirstEditable(int row, String preferredHeaderOrNull) {
+    private void startEditAtFirstEditable(int row, int preferredCol) {
         if (jTable.getRowCount() == 0) {
             return;
         }
-        int col = -1;
-        if (preferredHeaderOrNull != null) {
-            col = findViewColumnByHeader(preferredHeaderOrNull);
-        }
-        if (col < 0 || col >= jTable.getColumnCount()) {
+        int col = preferredCol;
+        if (col < 0 || col >= jTable.getColumnCount() || !jTable.isCellEditable(row, col)) {
             // find first editable from the left
             for (int c = 0; c < jTable.getColumnCount(); c++) {
                 if (jTable.isCellEditable(row, c)) {
@@ -2339,7 +2331,7 @@ public class MainPage extends javax.swing.JFrame {
                 }
             }
         }
-        if (col >= 0) {
+        if (col >= 0 && col < jTable.getColumnCount()) {
             startEditAt(row, col);
         }
     }

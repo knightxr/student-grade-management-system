@@ -5,23 +5,63 @@
     <title>Student Grade Management System — Download</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <style>
-      body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
-           margin:0;display:grid;place-items:center;min-height:100dvh;background:#0f1115;color:#e6e6e6}
-      .card{background:#171a21;border:1px solid #2a2f3a;border-radius:14px;padding:24px;max-width:640px}
-      a.button{display:inline-block;margin-top:8px;padding:10px 16px;border-radius:10px;
-               background:#2d6cdf;color:#fff;text-decoration:none}
+      :root{
+        --bg:#0f1115;--card:#171a21;--border:#2a2f3a;--text:#e6e6e6;--muted:#a9b0bb;--accent:#2d6cdf;
+      }
+      body{
+        font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+        margin:0;display:grid;place-items:center;min-height:100dvh;background:var(--bg);color:var(--text)
+      }
+      .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:24px;max-width:760px}
+      h1{margin:0 0 8px}
+      h2{margin:18px 0 8px;font-size:1.1rem}
+      p{margin:10px 0}
+      ul{margin:8px 0 0 20px}
+      li{margin:6px 0}
+      .muted{color:var(--muted)}
+      a.button{
+        display:inline-block;margin-top:8px;padding:10px 16px;border-radius:10px;
+        background:var(--accent);color:#fff;text-decoration:none
+      }
       code{background:#1b1e25;border-radius:6px;padding:2px 6px}
+      .callout{
+        border:1px solid var(--border);border-radius:10px;padding:10px 12px;background:#1b1e25;margin-top:10px
+      }
+      .small{font-size:.95rem}
     </style>
   </head>
   <body>
     <main class="card">
       <h1>Student Grade Management System</h1>
-      <p>Download the runnable JAR:</p>
-      <p><a class="button" href="StudentGradeManagementSystem-all.jar" download>Download JAR</a></p>
-      <h3>How to run</h3>
-      <p>Requires Java 17+ installed. Then double-click the JAR or run:</p>
+      <p class="muted">Download the runnable JAR and read the quick-start notes below.</p>
+
+      <p><a class="button" href="StudentGradeManagementSystem-all.jar" download>⬇️ Download JAR</a></p>
+
+      <h2>How to run</h2>
+      <p class="small">Requires Java 17+ installed. Then double-click the JAR or run:</p>
       <pre><code>java -jar StudentGradeManagementSystem-all.jar</code></pre>
-      <p>If your browser opens the JAR as text, right-click the link and choose <em>Save link as…</em></p>
+      <p class="small muted">If your browser opens the JAR as text, right-click the link and choose <em>Save link as…</em></p>
+
+      <h2>Quick start (credentials)</h2>
+      <div class="callout small">
+        <ul>
+          <li><strong>Login:</strong> username <code>admin</code>, password <code>admin</code>.</li>
+          <li><strong>Create account:</strong> when prompted for the <em>administrator password</em>, type <code>admin</code>.</li>
+        </ul>
+      </div>
+
+      <h2>Included data</h2>
+      <p class="small">The database ships with <strong>~300 students across 3 grades</strong>.</p>
+
+      <h2>To test features, you may need to…</h2>
+      <ul class="small">
+        <li>Add students to courses/classes.</li>
+        <li>Enter marks/assessments.</li>
+        <li>Write feedback/comments.</li>
+      </ul>
+
+      <h2>Reports (Microsoft Word required)</h2>
+      <p class="small">To use the <strong>Create Report</strong> feature, you must have <strong>Microsoft Word</strong> installed on the computer.</p>
     </main>
   </body>
 </html>

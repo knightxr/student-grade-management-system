@@ -1,7 +1,6 @@
 # Student Grade Management System (SGMS)
 
-> My Term 3 PAT project – desktop app to manage students, courses, assignments, grades, attendance, feedback, and report cards. Built with plain Java + Swing and an MS Access database via UCanAccess. I kept the code IEB-friendly (simple loops/ifs, minimal libraries).
-
+> Desktop app to manage students, courses, assignments, grades, attendance, feedback, and report cards. Built with plain Java + Swing and an MS Access database via UCanAccess.
 ---
 
 ## Contents
@@ -229,14 +228,6 @@ Main tables created by `DBSetup`:
 
 ---
 
-## IEB Alignment Notes
-
-* Core logic uses clear **loops, if/else, and basic arithmetic** (no streams/lambdas).
-* Sorting, searching, validation, and UI actions are implemented with straightforward Java/Swing.
-* I included simple algorithm **pseudocode** and kept classes small and focused.
-
----
-
 ## Troubleshooting
 
 **`ClassNotFoundException: net.ucanaccess.jdbc.UcanaccessDriver`**
@@ -264,12 +255,10 @@ Main tables created by `DBSetup`:
 
 ---
 
-### Quick Start (teacher)
+### Quick Start
 
 1. Run `DBSetup` once to create tables.
 2. Launch the app; sign in (admin authorises signups/resets).
 3. Create courses, add students, enrol them, add assignments, capture marks.
 4. Mark attendance and feedback as needed.
 5. Generate report cards for selected students.
-
-> If you need screenshots or the Phase 4 technical/testing write-ups, I’ve prepared them as separate documents.

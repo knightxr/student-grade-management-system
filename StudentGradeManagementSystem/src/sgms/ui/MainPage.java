@@ -1,38 +1,18 @@
 package sgms.ui;
 
 import java.awt.Color;
-import java.awt.Component;
-import java.awt.Font;
-import java.awt.GridLayout;
-import java.time.DayOfWeek;
-import java.time.LocalDate;
-import java.time.temporal.TemporalAdjusters;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.nio.file.Path;
 import javax.swing.JOptionPane;
-import javax.swing.SwingWorker;
-import javax.swing.JTable;
-import javax.swing.RowSorter;
-import javax.swing.SortOrder;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JSpinner;
-import javax.swing.SpinnerDateModel;
-import javax.swing.JTextField;
-import javax.swing.table.TableRowSorter;
-import javax.swing.text.JTextComponent;
 import sgms.dao.AssignmentDAO;
-import sgms.dao.FinalGradeDAO;
 import sgms.dao.GradeDAO;
 import sgms.dao.StudentDAO;
 import sgms.dao.AttendanceDAO;
 import sgms.dao.FeedbackDAO;
 import sgms.dao.CourseDAO;
 import sgms.dao.impl.UcanaccessAssignmentDAO;
-import sgms.dao.impl.UcanaccessFinalGradeDAO;
 import sgms.dao.impl.UcanaccessGradeDAO;
 import sgms.dao.impl.UcanaccessStudentDAO;
 import sgms.dao.impl.UcanaccessAttendanceDAO;
@@ -42,8 +22,6 @@ import sgms.model.Assignment;
 import sgms.model.Course;
 import sgms.model.Student;
 import sgms.service.ValidationService;
-import sgms.util.SearchUtil;
-import sgms.util.ReportCardGenerator;
 
 /**
  *
@@ -62,12 +40,15 @@ public class MainPage extends javax.swing.JFrame {
     private StudentFeedbackTableModel feedbackModel;
     private CourseTableModel courseModel;
     private AssignmentTableModel assignmentModel;
-    private javax.swing.table.TableColumn courseDeleteColumn;
-    private javax.swing.table.TableColumn assignmentDeleteColumn;
-    private javax.swing.table.TableColumn studentDeleteColumn;
-    private boolean courseDeleteMode = false;
-    private boolean assignmentDeleteMode = false;
+    // Delete-mode flags + cached column instances (per view)
     private boolean studentDeleteMode = false;
+    private javax.swing.table.TableColumn studentDeleteColumn;
+
+    private boolean assignmentDeleteMode = false;
+    private javax.swing.table.TableColumn assignmentDeleteColumn;
+
+    private boolean courseDeleteMode = false;
+    private javax.swing.table.TableColumn courseDeleteColumn;
     private boolean selectionMode = false;
     private int attendanceTodayColumn = -1;
     private final FeedbackDAO feedbackDAO = new UcanaccessFeedbackDAO();
@@ -236,9 +217,6 @@ public class MainPage extends javax.swing.JFrame {
                 jButtonEditActionPerformed(evt);
             }
         });
-
-        // Search uses current sorter
-        SearchUtil.installSearch(jTable, jTextFieldSearch, jButtonSearch);
 
         // Course selection is enabled only when needed
         jComboBox.setEnabled(false);
@@ -917,21 +895,23 @@ public class MainPage extends javax.swing.JFrame {
     }//GEN-LAST:event_jButtonAddActionPerformed
 
     private void jButtonDeleteActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonDeleteActionPerformed
-        // Final grades: read-only
-        if (finalGradesModel != null) return;
+        if (finalGradesModel != null) {
+            return;
+        }
 
-        // Feedback: delete the selected comment immediately (unchanged behavior)
+        // Feedback keeps old immediate delete
         if (feedbackModel != null) {
-            int viewRow = jTable.getSelectedRow();
-            if (viewRow >= 0) {
-                int modelRow = jTable.convertRowIndexToModel(viewRow);
-                Student s = feedbackModel.getStudent(modelRow);
+            int r = jTable.getSelectedRow();
+            if (r >= 0) {
+                int m = jTable.convertRowIndexToModel(r);
+                Student s = feedbackModel.getStudent(m);
                 int ok = JOptionPane.showConfirmDialog(this,
                         "Delete comment for " + s.getFirstName() + " " + s.getLastName() + "?",
                         "Confirm", JOptionPane.YES_NO_OPTION);
                 if (ok == JOptionPane.YES_OPTION) {
-                    try { feedbackDAO.delete(s.getStudentId(), getSelectedCourseId()); }
-                    catch (Exception ex) {
+                    try {
+                        feedbackDAO.delete(s.getStudentId(), getSelectedCourseId());
+                    } catch (Exception ex) {
                         JOptionPane.showMessageDialog(this, "Unable to delete feedback: " + ex.getMessage(),
                                 "Error", JOptionPane.ERROR_MESSAGE);
                     }
@@ -941,11 +921,14 @@ public class MainPage extends javax.swing.JFrame {
             return;
         }
 
-        // Toggle delete mode for the active grid and reload
         if (studentTableModel != null) {
-            // If a course is selected, Delete means "toggle enrolment mode"
             int courseId = getSelectedCourseId();
-            if (courseId > 0) { if (!selectionMode) startEnrollmentEdit(); return; }
+            if (courseId > 0) { // delete = enrolment edit in a course context
+                if (!selectionMode) {
+                    startEnrollmentEdit();
+                }
+                return;
+            }
             studentDeleteMode = !studentDeleteMode;
             reloadCurrentGrid();
             return;
@@ -963,11 +946,8 @@ public class MainPage extends javax.swing.JFrame {
             return;
         }
 
-        // Grades grid special-case (if you kept its inline delete column)
-        if (studentGradesModel != null) {
-            // optional: leave as-is, or implement a flag similar to others
-            reloadCurrentGrid();
-        }
+        // Grades grid: just refresh
+        reloadCurrentGrid();
     }//GEN-LAST:event_jButtonDeleteActionPerformed
 
     private void jComboBoxActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jComboBoxActionPerformed
@@ -989,7 +969,7 @@ public class MainPage extends javax.swing.JFrame {
     }//GEN-LAST:event_jComboBoxActionPerformed
 
     private void jTextFieldSearchActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jTextFieldSearchActionPerformed
-        // TODO add your handling code here:
+        sgms.util.SearchUtil.applySmartSearch(jTable, jTextFieldSearch.getText());
     }//GEN-LAST:event_jTextFieldSearchActionPerformed
 
     private void jButtonHelpActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonHelpActionPerformed
@@ -1074,7 +1054,9 @@ public class MainPage extends javax.swing.JFrame {
                 for (Assignment a : assignmentModel.getAssignments()) {
                     int id = a.getAssignmentId();
                     if (deleted.contains(Integer.valueOf(id))) {
-                        if (id > 0) { assignmentDAO.delete(id); }
+                        if (id > 0) {
+                            assignmentDAO.delete(id);
+                        }
                         continue;
                     }
                     if (id == 0) {
@@ -1086,6 +1068,7 @@ public class MainPage extends javax.swing.JFrame {
                 }
                 assignmentDeleteMode = false;
                 reloadCurrentGrid();
+                return;
             } catch (Exception ex) {
                 JOptionPane.showMessageDialog(this, "Unable to save assignments: " + ex.getMessage(),
                         "Error", JOptionPane.ERROR_MESSAGE);
@@ -1100,7 +1083,9 @@ public class MainPage extends javax.swing.JFrame {
                 for (Course c : courseModel.getCourses()) {
                     int id = c.getCourseId();
                     if (deleted.contains(Integer.valueOf(id))) {
-                        if (id > 0) { courseDAO.delete(id); }
+                        if (id > 0) {
+                            courseDAO.delete(id);
+                        }
                         continue;
                     }
                     if (id == 0) {
@@ -1111,6 +1096,7 @@ public class MainPage extends javax.swing.JFrame {
                 }
                 courseDeleteMode = false;
                 reloadCurrentGrid();
+                return;
             } catch (Exception ex) {
                 JOptionPane.showMessageDialog(this, "Unable to save courses: " + ex.getMessage(),
                         "Error", JOptionPane.ERROR_MESSAGE);
@@ -1123,9 +1109,17 @@ public class MainPage extends javax.swing.JFrame {
             return;
         }
 
-        // validate
+        java.util.Set<Integer> deleted = studentTableModel.getDeletedIds();
+
+        // validate non-deleted rows
         for (Student s : studentTableModel.getStudents()) {
-            if (s.getFirstName().trim().isEmpty() || s.getLastName().trim().isEmpty() || s.getGradeLevel() <= 0) {
+            int id = s.getStudentId();
+            if (deleted.contains(Integer.valueOf(id))) {
+                continue; // skip validation for rows marked to delete
+            }
+            String fn = s.getFirstName();
+            String ln = s.getLastName();
+            if (fn == null || fn.trim().isEmpty() || ln == null || ln.trim().isEmpty() || s.getGradeLevel() <= 0) {
                 JOptionPane.showMessageDialog(this, "All student fields must be filled.", "Validation Error",
                         JOptionPane.ERROR_MESSAGE);
                 return;
@@ -1133,11 +1127,12 @@ public class MainPage extends javax.swing.JFrame {
         }
 
         try {
-            java.util.Set<Integer> deleted = studentTableModel.getDeletedIds();
             for (Student s : studentTableModel.getStudents()) {
                 int id = s.getStudentId();
                 if (deleted.contains(Integer.valueOf(id))) {
-                    if (id > 0) { studentDAO.delete(id); }
+                    if (id > 0) {
+                        studentDAO.delete(id);
+                    }
                     continue;
                 }
                 if (id == 0) {
@@ -1150,6 +1145,7 @@ public class MainPage extends javax.swing.JFrame {
             studentTableModel.clearDeleted();
             studentDeleteMode = false;
             reloadCurrentGrid();
+            return;
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this, "Unable to save students: " + ex.getMessage(),
                     "Error", JOptionPane.ERROR_MESSAGE);
@@ -1300,7 +1296,7 @@ public class MainPage extends javax.swing.JFrame {
     }//GEN-LAST:event_jButtonEditActionPerformed
 
     private void jButtonSearchActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonSearchActionPerformed
-        // TODO add your handling code here:
+        sgms.util.SearchUtil.applySmartSearch(jTable, jTextFieldSearch.getText());
     }//GEN-LAST:event_jButtonSearchActionPerformed
 
     private void jButtonViewFinalGradesActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonViewFinalGradesActionPerformed
@@ -1333,15 +1329,6 @@ public class MainPage extends javax.swing.JFrame {
         finalGradesModel = null;
         attendanceTodayColumn = -1;
         selectionMode = false;
-
-        // Remove any floating "Delete" column from previous view
-        javax.swing.table.TableColumnModel cm = jTable.getColumnModel();
-        for (int i = 0; i < cm.getColumnCount(); i++) {
-            if ("Delete".equals(String.valueOf(cm.getColumn(i).getHeaderValue()))) {
-                cm.removeColumn(cm.getColumn(i));
-                break;
-            }
-        }
 
         // Load the table
         loadFinalGradesForSelectedGrade();
@@ -1376,15 +1363,6 @@ public class MainPage extends javax.swing.JFrame {
         selectionMode = false;
         attendanceTodayColumn = -1;
 
-        // Remove any floating "Delete" column
-        javax.swing.table.TableColumnModel cm = jTable.getColumnModel();
-        for (int i = 0; i < cm.getColumnCount(); i++) {
-            if ("Delete".equals(String.valueOf(cm.getColumn(i).getHeaderValue()))) {
-                cm.removeColumn(cm.getColumn(i));
-                break;
-            }
-        }
-
         // Load the table
         loadAttendanceForSelectedCourse();
     }//GEN-LAST:event_jButtonAttendanceActionPerformed
@@ -1417,15 +1395,6 @@ public class MainPage extends javax.swing.JFrame {
         assignmentDeleteColumn = null;
         assignmentDeleteMode = false;
         selectionMode = false;
-
-        // Remove any floating "Delete" column
-        javax.swing.table.TableColumnModel cm = jTable.getColumnModel();
-        for (int i = 0; i < cm.getColumnCount(); i++) {
-            if ("Delete".equals(String.valueOf(cm.getColumn(i).getHeaderValue()))) {
-                cm.removeColumn(cm.getColumn(i));
-                break;
-            }
-        }
 
         // Load the table
         loadFeedbackForSelectedCourse();
@@ -1460,15 +1429,6 @@ public class MainPage extends javax.swing.JFrame {
         courseDeleteMode = false;
         selectionMode = false;
         attendanceTodayColumn = -1;
-
-        // Remove any floating "Delete" column
-        javax.swing.table.TableColumnModel cm = jTable.getColumnModel();
-        for (int i = 0; i < cm.getColumnCount(); i++) {
-            if ("Delete".equals(String.valueOf(cm.getColumn(i).getHeaderValue()))) {
-                cm.removeColumn(cm.getColumn(i));
-                break;
-            }
-        }
 
         // Loads the table
         loadAssignmentsForSelectedCourse();
@@ -1747,11 +1707,10 @@ public class MainPage extends javax.swing.JFrame {
                 }
             }
 
-            // 6) Capture the Delete checkbox column; hide it only if not in delete mode
-            courseDeleteColumn = jTable.getColumnModel().getColumn(0);
-            if (!courseDeleteMode) {
-                jTable.removeColumn(courseDeleteColumn);
-            }
+            // Show/hide the Delete column based on courseDeleteMode
+            javax.swing.table.TableColumn[] ref = {courseDeleteColumn};
+            applyDeleteVisibility(ref, courseDeleteMode);
+            courseDeleteColumn = ref[0];
 
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this,
@@ -1858,11 +1817,10 @@ public class MainPage extends javax.swing.JFrame {
                 }
             }
 
-            // 6) Capture the Delete checkbox column and hide it only when not in delete mode
-            studentDeleteColumn = jTable.getColumnModel().getColumn(0);
-            if (!studentDeleteMode) {
-                jTable.removeColumn(studentDeleteColumn);
-            }
+            // Show/hide the Delete column based on studentDeleteMode
+            javax.swing.table.TableColumn[] ref = {studentDeleteColumn};
+            applyDeleteVisibility(ref, studentDeleteMode);
+            studentDeleteColumn = ref[0];
 
             // 7) Basic column width distribution so the table looks balanced
             int cols = jTable.getColumnModel().getColumnCount();
@@ -2299,11 +2257,10 @@ public class MainPage extends javax.swing.JFrame {
                 }
             }
 
-            // Capture the Delete column and hide it unless delete mode is active
-            assignmentDeleteColumn = jTable.getColumnModel().getColumn(0);
-            if (!assignmentDeleteMode) {
-                jTable.removeColumn(assignmentDeleteColumn);
-            }
+            // Show/hide the Delete column based on assignmentDeleteMode
+            javax.swing.table.TableColumn[] ref = {assignmentDeleteColumn};
+            applyDeleteVisibility(ref, assignmentDeleteMode);
+            assignmentDeleteColumn = ref[0];
 
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this, "Unable to load assignments: " + ex.getMessage(),
@@ -2455,18 +2412,94 @@ public class MainPage extends javax.swing.JFrame {
                     "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
-    
+
     /**
-     * Call this any time we need to rebuild the current grid.
+     * True if this TableColumn instance is currently in the view ColumnModel.
+     */
+    private static boolean isInView(javax.swing.table.TableColumnModel cm,
+            javax.swing.table.TableColumn col) {
+        if (col == null) {
+            return false;
+        }
+        for (int i = 0; i < cm.getColumnCount(); i++) {
+            if (cm.getColumn(i) == col) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Show/hide a cached delete column. If showing, keep it at view index 0.
+     */
+    private void applyDeleteVisibility(javax.swing.table.TableColumn[] cacheRef, boolean show) {
+        javax.swing.table.TableColumnModel cm = jTable.getColumnModel();
+        // Cache the *current model's* first column as the delete column if needed
+        if (cacheRef[0] == null && cm.getColumnCount() > 0) {
+            cacheRef[0] = cm.getColumn(0);
+        }
+        javax.swing.table.TableColumn col = cacheRef[0];
+        if (col == null) {
+            return;
+        }
+
+        boolean present = isInView(cm, col);
+
+        if (show) {
+            if (!present) {
+                jTable.addColumn(col);
+                present = true;
+            }
+            // ensure it's at index 0
+            if (present) {
+                int last = cm.getColumnCount() - 1;
+                int from = -1;
+                for (int i = 0; i < cm.getColumnCount(); i++) {
+                    if (cm.getColumn(i) == col) {
+                        from = i;
+                        break;
+                    }
+                }
+                if (from >= 0 && from != 0) {
+                    cm.moveColumn(from, 0);
+                }
+            }
+        } else {
+            if (present) {
+                jTable.removeColumn(col);
+            }
+        }
+    }
+
+    /**
+     * Rebuild the current grid according to the active model + flags.
      */
     private void reloadCurrentGrid() {
-        if (finalGradesModel != null) { loadFinalGradesForSelectedGrade(); return; }
-        if (attendanceModel != null) { loadAttendanceForSelectedCourse(); return; }
-        if (feedbackModel != null) { loadFeedbackForSelectedCourse(); return; }
-        if (assignmentModel != null) { loadAssignmentsForSelectedCourse(); return; }
-        if (courseModel != null) { loadCoursesForSelectedGrade(); return; }
-        if (studentGradesModel != null) { loadStudentGradesForSelectedCourse(); return; }
+        if (finalGradesModel != null) {
+            loadFinalGradesForSelectedGrade();
+            return;
+        }
+        if (attendanceModel != null) {
+            loadAttendanceForSelectedCourse();
+            return;
+        }
+        if (feedbackModel != null) {
+            loadFeedbackForSelectedCourse();
+            return;
+        }
+        if (assignmentModel != null) {
+            loadAssignmentsForSelectedCourse();
+            return;
+        }
+        if (courseModel != null) {
+            loadCoursesForSelectedGrade();
+            return;
+        }
+        if (studentGradesModel != null) {
+            loadStudentGradesForSelectedCourse();
+            return;
+        }
         /* default */ loadStudentsForSelectedCourse();
     }
-    
+
 }

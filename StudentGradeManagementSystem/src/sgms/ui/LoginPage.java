@@ -1,6 +1,8 @@
 package sgms.ui;
+
 import javax.swing.JOptionPane;
 import sgms.service.AuthService;
+import sgms.util.CredentialManager;
 
 /**
  * @author Jacques Smit
@@ -9,6 +11,7 @@ import sgms.service.AuthService;
  * It allows users to log in, sign up, or reset their password.
  */
 public class LoginPage extends javax.swing.JFrame {
+
     private final AuthService authService;
 
     public LoginPage() {
@@ -212,45 +215,48 @@ public class LoginPage extends javax.swing.JFrame {
      */
     private void btnLoginActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnLoginActionPerformed
         // Read inputs
-    String username = jTextFieldLoginUsername.getText().trim();
-    char[] pwChars = jPasswordFieldLoginPassword.getPassword();
-    String password = new String(pwChars); // use once, then clear
+        String username = jTextFieldLoginUsername.getText().trim();
+        char[] pwChars = jPasswordFieldLoginPassword.getPassword();
+        String password = new String(pwChars); // use once, then clear
 
-    // Clear any old error
-    jLabelLoginError.setText("");
+        // Clear any old error
+        jLabelLoginError.setText("");
 
-    // Basic checks
-    if (username.isEmpty()) {
-        jLabelLoginError.setText("Please enter your username.");
-        jTextFieldLoginUsername.requestFocus();
+        // Basic checks
+        if (username.isEmpty()) {
+            jLabelLoginError.setText("Please enter your username.");
+            jTextFieldLoginUsername.requestFocus();
+            java.util.Arrays.fill(pwChars, '\0');
+            return;
+        }
+        if (password.isEmpty()) {
+            jLabelLoginError.setText("Please enter your password.");
+            jPasswordFieldLoginPassword.requestFocus();
+            java.util.Arrays.fill(pwChars, '\0');
+            return;
+        }
+
+        // Try sign in
+        boolean ok = authService.login(username, password);
+
+        // Clear password chars from memory either way
         java.util.Arrays.fill(pwChars, '\0');
-        return;
-    }
-    if (password.isEmpty()) {
-        jLabelLoginError.setText("Please enter your password.");
-        jPasswordFieldLoginPassword.requestFocus();
-        java.util.Arrays.fill(pwChars, '\0');
-        return;
-    }
 
-    // Try sign in
-    boolean ok = authService.login(username, password);
+        if (ok) {
+            // Fetch the user's FULL NAME from DB (not the username)
+            String fullName = CredentialManager.getFullNameForUsername(username);
 
-    // Clear password chars from memory
-    java.util.Arrays.fill(pwChars, '\0');
-
-    if (ok) {
-        // Open the main window and close the login form
-        MainPage mainPage = new MainPage();
-        mainPage.setLocationRelativeTo(null);
-        mainPage.setVisible(true);
-        dispose();
-    } else {
-        // Show a generic error and clear the password box
-        jLabelLoginError.setText("Username or password is incorrect.");
-        jPasswordFieldLoginPassword.setText("");
-        jPasswordFieldLoginPassword.requestFocus();
-    }
+            // Open main window with the welcome name and close login
+            MainPage mainPage = new MainPage(fullName);  // uses your MainPage(String) ctor
+            mainPage.setLocationRelativeTo(null);
+            mainPage.setVisible(true);
+            dispose();
+        } else {
+            // Show a generic error and clear the password box
+            jLabelLoginError.setText("Username or password is incorrect.");
+            jPasswordFieldLoginPassword.setText("");
+            jPasswordFieldLoginPassword.requestFocus();
+        }
     }//GEN-LAST:event_btnLoginActionPerformed
 
     /**

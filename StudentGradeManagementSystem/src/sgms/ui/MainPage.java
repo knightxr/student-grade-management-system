@@ -26,7 +26,7 @@ import sgms.service.ValidationService;
 
 /**
  *
- * @author Jacques Smit 12E Main application frame that hosts the navigation
+ * @author Jacques Smit Main application frame that hosts the navigation
  * sidebar and a data table
  */
 public class MainPage extends javax.swing.JFrame {

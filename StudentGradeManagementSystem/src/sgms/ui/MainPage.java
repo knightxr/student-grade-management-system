@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import javax.swing.JOptionPane;
+import sgms.dao.DB;
 import sgms.dao.AssignmentDAO;
 import sgms.dao.GradeDAO;
 import sgms.dao.StudentDAO;
@@ -1025,7 +1026,8 @@ public class MainPage extends javax.swing.JFrame {
         LoginPage loginPage = new LoginPage();
         loginPage.setVisible(true);
         dispose();
-
+        // Close the shared DB connection to free resources when logging out
+        DB.shutdown();
     }//GEN-LAST:event_jButtonLogoutActionPerformed
 
     private void jTextFieldSearchFocusGained(java.awt.event.FocusEvent evt) {//GEN-FIRST:event_jTextFieldSearchFocusGained
